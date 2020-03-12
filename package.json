@@ -1,0 +1,25 @@
+{
+  "name": "progrimage",
+  "version": "1.0.0",
+  "description": "Programming themed image editing",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Luke-Draper/progrimage.git"
+  },
+  "author": "Luke-Draper",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Luke-Draper/progrimage/issues"
+  },
+  "homepage": "https://github.com/Luke-Draper/progrimage#readme",
+  "dependencies": {
+    "bootstrap": "^4.4.1",
+    "d3": "^5.15.0",
+    "jquery": "^3.4.1",
+    "popper.js": "^1.16.1"
+  }
+}
