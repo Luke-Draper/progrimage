@@ -1,0 +1,16 @@
+{
+	"bb.beautify.onSave": true,
+	"path": {
+		"thirdparty/**.js": {
+			"bb.beautify.onSave": false
+		},
+		"**min**.js": {
+			"bb.beautify.onSave": false
+		}
+	},
+	"language": {
+		"php": {
+			"bb.beautify.onSave": false
+		}
+	}
+}
