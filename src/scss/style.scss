@@ -1,1 +1,35 @@
 @import "~bootstrap/scss/bootstrap";
+
+.square-placeholder {
+	width: 100%;
+}
+
+.editor-canvas {
+	position: absolute;
+	left: 0;
+	width: 100%;
+}
+
+#main-canvas {
+	height: 100%;
+	top: 0;
+	background-color: blue;
+}
+
+#sub-1-canvas {
+	height: calc(100% / 3);
+	top: 0;
+	background-color: red;
+}
+
+#sub-2-canvas {
+	height: calc(100% / 3);
+	top: calc(100% / 3);
+	background-color: orange;
+}
+
+#sub-3-canvas {
+	height: calc(100% / 3);
+	top: calc(100% / 3 * 2);
+	background-color: yellow;
+}
