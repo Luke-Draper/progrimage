@@ -1,5 +1,39 @@
 import '../scss/style.scss';
 
+class Point {
+	constructor(x, y, radius = 10, color = "#000000") {
+		this.x = x;
+		this.y = y;
+		this.radius = radius;
+		this.color = color;
+	}
+
+	svgFormat() {
+		return `${this.x} ${this.y} `;
+	}
+	svgCircle() {
+		return `<circle cx="${this.x}" cy="${this.y}" r="${this.radius}" fill="${this.color}"/>`;
+	}
+}
+
+
+class Line {
+	constructor(point1, point2) {
+		this.point1 = point1;
+		this.point2 = point2;
+	}
+
+	svgLine(strokeWidth, color = "#000000", lineCap = "round") {
+		return `<circle x1="${this.point1.x}" y1="${this.point1.y}" x2="${this.point2.x}" y2="${this.point2.y}" stroke-width="${strokeWidth}" stroke="${color}" stroke-linecap="${lineCap}"/>`;
+	}
+}
+
+
+
+
+
+
+
 /*
 const {
 	List,
