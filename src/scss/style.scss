@@ -1,35 +1,58 @@
 @import "~bootstrap/scss/bootstrap";
 
+$border-color: #343a40;
+$border-width: 2px;
+$border-width-2: 2 * $border-width;
+$third: 100% / 3;
+$two-third: 2 * $third;
+
+html,
+body {
+	background-color: $border-color;
+}
+
 .square-placeholder {
 	width: 100%;
 }
 
-.editor-canvas {
+.square-border {
+	width: 100%;
+	height: 100%;
 	position: absolute;
 	left: 0;
-	width: 100%;
-}
-
-#main-canvas {
-	height: 100%;
 	top: 0;
-	background-color: blue;
+	background-color: $border-color;
 }
 
-#sub-1-canvas {
-	height: calc(100% / 3);
-	top: 0;
-	background-color: red;
+.main-pos,
+.sub-1-pos,
+.sub-2-pos,
+.sub-3-pos {
+	position: absolute;
+	left: $border-width;
+	width: calc(100% - #{$border-width-2});
 }
 
-#sub-2-canvas {
-	height: calc(100% / 3);
-	top: calc(100% / 3);
-	background-color: orange;
+.main-pos {
+	height: calc(100% - #{$border-width-2});
+	top: $border-width;
+	background-color: white;
 }
 
-#sub-3-canvas {
-	height: calc(100% / 3);
-	top: calc(100% / 3 * 2);
-	background-color: yellow;
+.sub-1-pos {
+	height: calc(#{$third} - #{$border-width-2});
+	top: $border-width;
+	background-color: white;
+}
+
+.sub-2-pos {
+	height: calc(#{$third} - #{$border-width-2});
+	top: calc(#{$third} + #{$border-width});
+	background-color: white;
+}
+
+.sub-3-pos {
+	height: calc(#{$third} - #{$border-width-2});
+	top: calc(#{$two-third} + #{$border-width});
+	background-color: white;
 }

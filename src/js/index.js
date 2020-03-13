@@ -1,5 +1,6 @@
 import '../scss/style.scss';
 
+/*
 const {
 	List,
 	Map
@@ -94,3 +95,4 @@ redo.addEventListener('click', function () {
 });
 
 draw();
+*/
