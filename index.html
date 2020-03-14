@@ -25,20 +25,11 @@
 			</div>
 
 			<div class="btn-group">
-				<button type="button" class="btn btn-light" id="btn-points" title="Select Points">
-					<ion-icon name="ellipsis-vertical-outline"></ion-icon>
-				</button>
-				<button type="button" class="btn btn-light" id="btn-lines" title="Select Lines">
-					<ion-icon name="menu-outline"></ion-icon>
-				</button>
-				<button type="button" class="btn btn-light" id="btn-faces" title="Select Faces">
-					<ion-icon name="layers-outline"></ion-icon>
-				</button>
-			</div>
-
-			<div class="btn-group">
 				<button type="button" class="btn btn-light" id="btn-zoom-in" title="Zoom In">
 					<ion-icon name="add-circle-outline"></ion-icon>
+				</button>
+				<button type="button" class="btn btn-light" id="btn-zoom-reset" title="Zoom Reset">
+					<ion-icon name="scan-circle-outline"></ion-icon>
 				</button>
 				<button type="button" class="btn btn-light" id="btn-zoom-out" title="Zoom Out">
 					<ion-icon name="remove-circle-outline"></ion-icon>
@@ -46,15 +37,41 @@
 			</div>
 
 			<div class="btn-group">
-				<button type="button" class="btn btn-light" id="btn-back-upload" title="Upload Background Image">
-					<ion-icon name="images-outline"></ion-icon>
-				</button>
-				<button type="button" class="btn btn-light" id="btn-back-visible" title="Toggle Background Visibility">
+				<button class="btn btn-light dropdown-toggle" type="button" title="Background Settings" data-toggle="dropdown">
 					<ion-icon name="eye-outline"></ion-icon>
 				</button>
-				<button type="button" class="btn btn-light" id="btn-back-remove" title="Remove Background">
-					<ion-icon name="backspace-outline"></ion-icon>
+				<div class="dropdown-menu" aria-labelledby="dLabel">
+					<div class="ml-3 btn-group">
+						<button type="button" class="btn btn-light" id="btn-points" title="Toggle Points Visibility">
+							<ion-icon name="ellipsis-vertical-outline"></ion-icon>
+						</button>
+						<button type="button" class="btn btn-light" id="btn-lines" title="Toggle Lines Visibility">
+							<ion-icon name="menu-outline"></ion-icon>
+						</button>
+						<button type="button" class="btn btn-light" id="btn-faces" title="Toggle Faces Visibility">
+							<ion-icon name="layers-outline"></ion-icon>
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="btn-group">
+				<button class="btn btn-light dropdown-toggle" type="button" title="Background Settings" data-toggle="dropdown">
+					<ion-icon name="images-outline"></ion-icon>
 				</button>
+				<div class="dropdown-menu" aria-labelledby="dLabel">
+					<div class="ml-3 btn-group">
+						<button type="button" class="btn btn-light" id="btn-back-upload" title="Upload Background Image">
+							<ion-icon name="push-outline"></ion-icon>
+						</button>
+						<button type="button" class="btn btn-light" id="btn-back-visible" title="Toggle Background Visibility">
+							<ion-icon name="eye-outline"></ion-icon>
+						</button>
+						<button type="button" class="btn btn-light" id="btn-back-remove" title="Remove Background">
+							<ion-icon name="backspace-outline"></ion-icon>
+						</button>
+					</div>
+				</div>
 			</div>
 
 			<div class="btn-group">
@@ -77,7 +94,7 @@
 					<ion-icon name="terminal-outline"></ion-icon>
 				</button>
 				<div class="dropdown-menu" aria-labelledby="dLabel">
-					<button class="dropdown-item" type="button">Trelaunaay</button>
+					<button class="dropdown-item" type="button">Delaunay</button>
 					<button class="dropdown-item" type="button">Voronoi</button>
 					<button class="dropdown-item" type="button">Circuit</button>
 				</div>
@@ -102,6 +119,7 @@
 					<img class="square-placeholder" src="https://via.placeholder.com/100/FFFFFF/FFFFFF">
 					<div class="square-border"></div>
 					<canvas class="sub-canvas sub-1-pos" id="sub-1-canvas"></canvas>
+					<svg viewBox="0 0 1 1" xmlns="http://www.w3.org/2000/svg" class="sub-1-pos" id="sub-1-svg">
 				</div>
 				<div class="row">
 					<img class="square-placeholder" src="https://via.placeholder.com/100/FFFFFF/FFFFFF">
@@ -115,12 +133,14 @@
 		</div>
 	</div>
 
-	<script src="node_modules/ionicons/dist/ionicons.js"></script>
+	<script type="module" src="node_modules/ionicons/dist/ionicons/ionicons.esm.js"></script>
+	<script nomodule="" src="node_modules/ionicons/dist/ionicons/ionicons.js"></script>
 	<script src="node_modules/d3/dist/d3.min.js"></script>
 	<script src="node_modules/jquery/dist/jquery.min.js"></script>
 	<script src="node_modules/popper.js/dist/popper.min.js"></script>
 	<script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-	<script src="./dist/bundle.js"></script>
+	<script src="./dist/style.js"></script>
+	<script src="./src/js/index.js"></script>
 </body>
 
 </html>
