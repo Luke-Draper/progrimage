@@ -1,4 +1,5 @@
 {
+	"jslint.options.es6": true,
 	"bb.beautify.onSave": true,
 	"path": {
 		"thirdparty/**.js": {

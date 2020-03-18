@@ -1,146 +1,341 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, shrink-to-fit=no"
+		/>
+		<meta name="author" content="Luke Draper" />
 
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-	<meta name="author" content="Luke Draper">
+		<title>Progrimage</title>
+	</head>
 
-	<title>Progrimage</title>
+	<body cz-shortcut-listen="true">
+		<nav class="navbar navbar-dark sticky-top bg-dark my-0 py-0">
+			<div class="container-lg">
+				<h1 class="navbar-brand">
+					<img src="logo-white.png" height="32" width="32" /> Progrimage
+				</h1>
 
-</head>
+				<div class="btn-group">
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-edit-type"
+						title="Edit Type : View"
+					>
+						<ion-icon name="move-outline"></ion-icon>
+						<ion-icon
+							id="icon-edit-type-view"
+							title="Edit Type : View"
+							style="display: inline-block"
+							name="image-outline"
+						></ion-icon>
+						<ion-icon
+							id="icon-edit-type-all"
+							title="Edit Type : All"
+							style="display: none;"
+							name="share-social-outline"
+						></ion-icon>
+						<ion-icon
+							id="icon-edit-type-points"
+							title="Edit Type : Points"
+							style="display: none;"
+							name="ellipsis-vertical-outline"
+						></ion-icon>
+						<ion-icon
+							id="icon-edit-type-lines"
+							title="Edit Type : Lines"
+							style="display: none;"
+							name="menu-outline"
+						></ion-icon>
+						<ion-icon
+							id="icon-edit-type-faces"
+							title="Edit Type : Faces"
+							style="display: none;"
+							name="layers-outline"
+						></ion-icon>
+					</button>
+				</div>
 
-<body cz-shortcut-listen="true">
-	<nav class="navbar navbar-dark sticky-top bg-dark my-0 py-0">
+				<div class="btn-group">
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-undo"
+						title="Undo"
+					>
+						<ion-icon name="arrow-undo-outline"></ion-icon>
+					</button>
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-redo"
+						title="Redo"
+					>
+						<ion-icon name="arrow-redo-outline"></ion-icon>
+					</button>
+				</div>
+
+				<div class="btn-group">
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-zoom-in"
+						title="Zoom In"
+					>
+						<ion-icon name="add-circle-outline"></ion-icon>
+					</button>
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-zoom-reset"
+						title="Zoom Reset"
+					>
+						<ion-icon name="scan-circle-outline"></ion-icon>
+					</button>
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-zoom-out"
+						title="Zoom Out"
+					>
+						<ion-icon name="remove-circle-outline"></ion-icon>
+					</button>
+				</div>
+
+				<div class="btn-group">
+					<button
+						class="btn btn-light dropdown-toggle"
+						type="button"
+						title="Background Settings"
+						data-toggle="dropdown"
+					>
+						<ion-icon name="eye-outline"></ion-icon>
+					</button>
+					<div class="dropdown-menu" aria-labelledby="dLabel">
+						<div class="ml-3 btn-group">
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-points"
+								title="Toggle Points Visibility"
+							>
+								<ion-icon name="ellipsis-vertical-outline"></ion-icon>
+							</button>
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-lines"
+								title="Toggle Lines Visibility"
+							>
+								<ion-icon name="menu-outline"></ion-icon>
+							</button>
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-faces"
+								title="Toggle Faces Visibility"
+							>
+								<ion-icon name="layers-outline"></ion-icon>
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="btn-group">
+					<button
+						class="btn btn-light dropdown-toggle"
+						type="button"
+						title="Background Settings"
+						data-toggle="dropdown"
+					>
+						<ion-icon name="images-outline"></ion-icon>
+					</button>
+					<div class="dropdown-menu" aria-labelledby="dLabel">
+						<div class="ml-3 btn-group">
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-back-upload"
+								title="Upload Background Image"
+							>
+								<ion-icon name="push-outline"></ion-icon>
+							</button>
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-back-visible"
+								title="Toggle Background Visibility"
+							>
+								<ion-icon name="eye-outline"></ion-icon>
+							</button>
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-back-remove"
+								title="Remove Background"
+							>
+								<ion-icon name="backspace-outline"></ion-icon>
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="btn-group">
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-download"
+						title="Download"
+					>
+						<ion-icon name="download-outline"></ion-icon>
+					</button>
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-upload"
+						title="Upload"
+					>
+						<ion-icon name="push-outline"></ion-icon>
+					</button>
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-export"
+						title="Export"
+					>
+						<ion-icon name="log-out-outline"></ion-icon>
+					</button>
+				</div>
+
+				<div class="btn-group">
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-settings"
+						title="Settings"
+					>
+						<ion-icon name="settings-outline"></ion-icon>
+					</button>
+					<button
+						class="btn btn-light dropdown-toggle"
+						type="button"
+						title="Functions"
+						data-toggle="dropdown"
+					>
+						<ion-icon name="terminal-outline"></ion-icon>
+					</button>
+					<div class="dropdown-menu" aria-labelledby="dLabel">
+						<button class="dropdown-item" type="button">Delaunay</button>
+						<button class="dropdown-item" type="button">Voronoi</button>
+						<button class="dropdown-item" type="button">Circuit</button>
+					</div>
+				</div>
+			</div>
+		</nav>
+
 		<div class="container-lg">
-			<h1 class="navbar-brand"><img src="logo-white.png" height="32" width="32"> Progrimage</h1>
-
-			<div class="btn-group">
-				<button type="button" class="btn btn-light" id="btn-undo" title="Undo">
-					<ion-icon name="arrow-undo-outline"></ion-icon>
-				</button>
-				<button type="button" class="btn btn-light" id="btn-redo" title="Redo">
-					<ion-icon name="arrow-redo-outline"></ion-icon>
-				</button>
-			</div>
-
-			<div class="btn-group">
-				<button type="button" class="btn btn-light" id="btn-zoom-in" title="Zoom In">
-					<ion-icon name="add-circle-outline"></ion-icon>
-				</button>
-				<button type="button" class="btn btn-light" id="btn-zoom-reset" title="Zoom Reset">
-					<ion-icon name="scan-circle-outline"></ion-icon>
-				</button>
-				<button type="button" class="btn btn-light" id="btn-zoom-out" title="Zoom Out">
-					<ion-icon name="remove-circle-outline"></ion-icon>
-				</button>
-			</div>
-
-			<div class="btn-group">
-				<button class="btn btn-light dropdown-toggle" type="button" title="Background Settings" data-toggle="dropdown">
-					<ion-icon name="eye-outline"></ion-icon>
-				</button>
-				<div class="dropdown-menu" aria-labelledby="dLabel">
-					<div class="ml-3 btn-group">
-						<button type="button" class="btn btn-light" id="btn-points" title="Toggle Points Visibility">
-							<ion-icon name="ellipsis-vertical-outline"></ion-icon>
-						</button>
-						<button type="button" class="btn btn-light" id="btn-lines" title="Toggle Lines Visibility">
-							<ion-icon name="menu-outline"></ion-icon>
-						</button>
-						<button type="button" class="btn btn-light" id="btn-faces" title="Toggle Faces Visibility">
-							<ion-icon name="layers-outline"></ion-icon>
-						</button>
+			<div class="row">
+				<div class="col-3">
+					<div class="row">
+						<img
+							class="square-placeholder"
+							src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
+						/>
+						<div class="square-border"></div>
+						<canvas class="sub-canvas sub-1-pos" id="sub-1-canvas"></canvas>
+						<svg
+							viewBox="0 0 1 1"
+							xmlns="http://www.w3.org/2000/svg"
+							class="sub-1-pos"
+							id="sub-1-svg"
+						></svg>
+					</div>
+					<div class="row">
+						<img
+							class="square-placeholder"
+							src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
+						/>
+						<canvas class="sub-canvas sub-2-pos" id="sub-2-canvas"></canvas>
+					</div>
+					<div class="row">
+						<img
+							class="square-placeholder"
+							src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
+						/>
+						<canvas class="sub-canvas sub-3-pos" id="sub-3-canvas"></canvas>
+					</div>
+				</div>
+				<div class="col-9">
+					<div class="row">
+						<img
+							class="square-placeholder"
+							src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
+						/>
+						<div class="square-border"></div>
+						<canvas class="main-pos" id="main-canvas"></canvas>
+						<svg
+							viewBox="0 0 1 1"
+							xmlns="http://www.w3.org/2000/svg"
+							class="main-pos"
+							id="main-svg"
+						></svg>
 					</div>
 				</div>
 			</div>
-
-			<div class="btn-group">
-				<button class="btn btn-light dropdown-toggle" type="button" title="Background Settings" data-toggle="dropdown">
-					<ion-icon name="images-outline"></ion-icon>
-				</button>
-				<div class="dropdown-menu" aria-labelledby="dLabel">
-					<div class="ml-3 btn-group">
-						<button type="button" class="btn btn-light" id="btn-back-upload" title="Upload Background Image">
-							<ion-icon name="push-outline"></ion-icon>
-						</button>
-						<button type="button" class="btn btn-light" id="btn-back-visible" title="Toggle Background Visibility">
-							<ion-icon name="eye-outline"></ion-icon>
-						</button>
-						<button type="button" class="btn btn-light" id="btn-back-remove" title="Remove Background">
-							<ion-icon name="backspace-outline"></ion-icon>
-						</button>
-					</div>
-				</div>
-			</div>
-
-			<div class="btn-group">
-				<button type="button" class="btn btn-light" id="btn-download" title="Download">
-					<ion-icon name="download-outline"></ion-icon>
-				</button>
-				<button type="button" class="btn btn-light" id="btn-upload" title="Upload">
-					<ion-icon name="push-outline"></ion-icon>
-				</button>
-				<button type="button" class="btn btn-light" id="btn-export" title="Export">
-					<ion-icon name="log-out-outline"></ion-icon>
-				</button>
-			</div>
-
-			<div class="btn-group">
-				<button type="button" class="btn btn-light" id="btn-settings" title="Settings">
-					<ion-icon name="settings-outline"></ion-icon>
-				</button>
-				<button class="btn btn-light dropdown-toggle" type="button" title="Functions" data-toggle="dropdown">
-					<ion-icon name="terminal-outline"></ion-icon>
-				</button>
-				<div class="dropdown-menu" aria-labelledby="dLabel">
-					<button class="dropdown-item" type="button">Delaunay</button>
-					<button class="dropdown-item" type="button">Voronoi</button>
-					<button class="dropdown-item" type="button">Circuit</button>
-				</div>
-			</div>
-
-		</div>
-	</nav>
-
-	<div class="container-lg">
-		<div class="row">
-			<div class="col-md-9">
-				<div class="row">
-					<img class="square-placeholder" src="https://via.placeholder.com/100/FFFFFF/FFFFFF">
+			<div class="row">
+				<div class="col-3">
+					<img
+						class="square-placeholder"
+						src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
+					/>
 					<div class="square-border"></div>
-					<canvas class="main-pos" id="main-canvas"></canvas>
-					<svg viewBox="0 0 1 1" xmlns="http://www.w3.org/2000/svg" class="main-pos" id="main-svg">
-					</svg>
+					<canvas class="sub-canvas sub-4-pos" id="sub-1-canvas"></canvas>
 				</div>
-			</div>
-			<div class="col-md-3">
-				<div class="row">
-					<img class="square-placeholder" src="https://via.placeholder.com/100/FFFFFF/FFFFFF">
+				<div class="col-3">
+					<img
+						class="square-placeholder"
+						src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
+					/>
 					<div class="square-border"></div>
-					<canvas class="sub-canvas sub-1-pos" id="sub-1-canvas"></canvas>
-					<svg viewBox="0 0 1 1" xmlns="http://www.w3.org/2000/svg" class="sub-1-pos" id="sub-1-svg">
+					<canvas class="sub-canvas sub-5-pos" id="sub-1-canvas"></canvas>
 				</div>
-				<div class="row">
-					<img class="square-placeholder" src="https://via.placeholder.com/100/FFFFFF/FFFFFF">
-					<canvas class="sub-canvas sub-2-pos" id="sub-2-canvas"></canvas>
+				<div class="col-3">
+					<img
+						class="square-placeholder"
+						src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
+					/>
+					<div class="square-border"></div>
+					<canvas class="sub-canvas sub-6-pos" id="sub-1-canvas"></canvas>
 				</div>
-				<div class="row">
-					<img class="square-placeholder" src="https://via.placeholder.com/100/FFFFFF/FFFFFF">
-					<canvas class="sub-canvas sub-3-pos" id="sub-3-canvas"></canvas>
+				<div class="col-3">
+					<img
+						class="square-placeholder"
+						src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
+					/>
+					<div class="square-border"></div>
+					<canvas class="sub-canvas sub-7-pos" id="sub-1-canvas"></canvas>
 				</div>
 			</div>
 		</div>
-	</div>
 
-	<script type="module" src="node_modules/ionicons/dist/ionicons/ionicons.esm.js"></script>
-	<script nomodule="" src="node_modules/ionicons/dist/ionicons/ionicons.js"></script>
-	<script src="node_modules/d3/dist/d3.min.js"></script>
-	<script src="node_modules/jquery/dist/jquery.min.js"></script>
-	<script src="node_modules/popper.js/dist/popper.min.js"></script>
-	<script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-	<script src="./dist/style.js"></script>
-	<script src="./src/js/index.js"></script>
-</body>
+		<script
+			type="module"
+			src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"
+		></script>
+		<script
+			nomodule=""
+			src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.js"
+		></script>
 
+		<script src="./node_modules/immutable/dist/immutable.min.js"></script>
+		<script src="./node_modules/d3/dist/d3.min.js"></script>
+		<script src="./node_modules/jquery/dist/jquery.min.js"></script>
+		<script src="./node_modules/popper.js/dist/popper.min.js"></script>
+		<script src="./node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+		<script src="./dist/style.js"></script>
+		<script src="./src/js/index.js"></script>
+	</body>
 </html>

@@ -27,32 +27,41 @@ body {
 .main-pos,
 .sub-1-pos,
 .sub-2-pos,
-.sub-3-pos {
+.sub-3-pos,
+.sub-4-pos,
+.sub-5-pos,
+.sub-6-pos,
+.sub-7-pos {
 	position: absolute;
 	left: $border-width;
 	width: calc(100% - #{$border-width-2});
+	background-color: white;
 }
 
 .main-pos {
 	height: calc(100% - #{$border-width-2});
 	top: $border-width;
-	background-color: white;
 }
 
 .sub-1-pos {
 	height: calc(#{$third} - #{$border-width-2});
 	top: $border-width;
-	background-color: white;
 }
 
 .sub-2-pos {
 	height: calc(#{$third} - #{$border-width-2});
 	top: calc(#{$third} + #{$border-width});
-	background-color: white;
 }
 
 .sub-3-pos {
 	height: calc(#{$third} - #{$border-width-2});
 	top: calc(#{$two-third} + #{$border-width});
-	background-color: white;
+}
+
+.sub-4-pos,
+.sub-5-pos,
+.sub-6-pos,
+.sub-7-pos {
+	height: calc(100% - #{$border-width-2});
+	top: $border-width;
 }
