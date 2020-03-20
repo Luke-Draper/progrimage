@@ -1,3 +1,7 @@
+import "../scss/style.js";
+import * as d3 from "../../node_modules/d3/dist/d3.js";
+import { Delaunay } from "d3-delaunay";
+
 /*     --==++==--     --==++[| Constants |]++==--     --==++==--     */
 
 const btnEditType = d3.select("#btn-edit-type");
@@ -30,8 +34,14 @@ var undoHistory = [];
 var editType = 0;
 var zoom;
 
+var idAccumulator = 0;
 var initial = null;
 var selectedPoints = [];
+
+var threshold = 5;
+var downCoord = { x: -1, y: -1 };
+
+var keydown = " ";
 
 /*     --==++==--     --==++[| Classes |]++==--     --==++==--     */
 
@@ -59,9 +69,11 @@ class Point {
 	svgPoint() {
 		var selectAttributes = "";
 		if (this.selected) {
-			var stroke = this.radius / 10;
+			var stroke = this.radius / 5;
 			var dash = stroke / 3;
 			selectAttributes = ` stroke="#ff873d" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="0.00001,${dash}"`;
+		} else {
+			selectAttributes = ' stroke="rgba" stroke-width="0"';
 		}
 		return `<circle id="${this.id}" class="svg-points" cx="${this.x}" cy="${this.y}" r="${this.radius}" fill="${this.color}"${selectAttributes}/>`;
 	}
@@ -97,8 +109,8 @@ class Line {
 	}
 
 	svgLine() {
-		var p1 = getByID(undoHistory[undoHistoryIndex].points, this.point1);
-		var p2 = getByID(undoHistory[undoHistoryIndex].points, this.point2);
+		var p1 = getPointByID(this.point1);
+		var p2 = getPointByID(this.point2);
 		var selectAttributes = `stroke="${this.color}" stroke-linecap="${this.lineCap}"`;
 		if (p1.selected && p2.selected) {
 			var dash = this.strokeWidth / 3;
@@ -108,18 +120,18 @@ class Line {
 	}
 
 	svgBasicLine() {
-		var p1 = getByID(undoHistory[undoHistoryIndex].points, this.point1);
-		var p2 = getByID(undoHistory[undoHistoryIndex].points, this.point2);
+		var p1 = getPointByID(this.point1);
+		var p2 = getPointByID(this.point2);
 		var color = "rgba(0,128,0,0.4)";
 		if (p1.selected && p2.selected) {
-			color = `rgba(255,135,61,0.4)" stroke-dasharray="0.00001,0.0083333`;
+			color = `rgba(255,135,61,0.7)" stroke-dasharray="0.00001,0.0083333`;
 		}
 		return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke-width="0.0015" stroke="${color}" stroke-linecap="round"/>`;
 	}
 
 	svgExportLine() {
-		var p1 = getByID(undoHistory[undoHistoryIndex].points, this.point1);
-		var p2 = getByID(undoHistory[undoHistoryIndex].points, this.point2);
+		var p1 = getPointByID(this.point1);
+		var p2 = getPointByID(this.point2);
 		return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke-width="${this.strokeWidth}" stroke="${this.color}" stroke-linecap="${lineCap}"/>`;
 	}
 }
@@ -134,9 +146,9 @@ class Face {
 	}
 
 	svgFace() {
-		var p1 = getByID(undoHistory[undoHistoryIndex].points, this.point1);
-		var p2 = getByID(undoHistory[undoHistoryIndex].points, this.point2);
-		var p3 = getByID(undoHistory[undoHistoryIndex].points, this.point3);
+		var p1 = getPointByID(this.point1);
+		var p2 = getPointByID(this.point2);
+		var p3 = getPointByID(this.point3);
 		var selectAttributes = "";
 		if (p1.selected && p2.selected && p3.selected) {
 			var avgX = (p1.x + p2.x + p3.x) / 3;
@@ -151,20 +163,20 @@ class Face {
 	}
 
 	svgBasicFace() {
-		var p1 = getByID(undoHistory[undoHistoryIndex].points, this.point1);
-		var p2 = getByID(undoHistory[undoHistoryIndex].points, this.point2);
-		var p3 = getByID(undoHistory[undoHistoryIndex].points, this.point3);
+		var p1 = getPointByID(this.point1);
+		var p2 = getPointByID(this.point2);
+		var p3 = getPointByID(this.point3);
 		var color = "rgba(0,128,128,0.2)";
 		if (p1.selected && p2.selected && p3.selected) {
-			color = "rgba(255,135,61,0.2)";
+			color = "rgba(255,135,61,0.4)";
 		}
 		return `<polygon class="svg-faces" points="${p1.svgFormat()} ${p2.svgFormat()} ${p3.svgFormat()}" fill="${color}"/>`;
 	}
 
 	svgExportFace() {
-		var p1 = getByID(undoHistory[undoHistoryIndex].points, this.point1);
-		var p2 = getByID(undoHistory[undoHistoryIndex].points, this.point2);
-		var p3 = getByID(undoHistory[undoHistoryIndex].points, this.point3);
+		var p1 = getPointByID(this.point1);
+		var p2 = getPointByID(this.point2);
+		var p3 = getPointByID(this.point3);
 		return `<polygon points="${p1.svgFormat()} ${p2.svgFormat()} ${p3.svgFormat()}" fill="${
 			this.color
 		}"/>`;
@@ -174,57 +186,36 @@ class Face {
 /*     --==++==--     --==++[| Callbacks |]++==--     --==++==--     */
 
 var btnEditTypePress = function() {
-	editTypeIcons[editType].attr("style", "display:none;");
 	editType++;
-	if (editType >= 5) {
+	if (editType >= 2) {
 		editType = 0;
 		enableZoom();
 	} else {
 		enableZoom(false);
 	}
-	editTypeIcons[editType].attr("style", "display: inline-block");
-	btnEditType.attr("title", editTypeIcons[editType].attr("title"));
 
-	if (editType == 0) {
-		mainSVG.mainGroup.attr("cursor", "grab");
-	} else {
-		mainSVG.mainGroup.attr("cursor", null);
-	}
-
-	if (editType == 1 || editType == 2) {
-		d3.selectAll(".svg-points").attr("cursor", "grab");
-	} else {
-		d3.selectAll(".svg-points").attr("cursor", null);
-	}
-
-	if (editType == 1 || editType == 3) {
-		d3.selectAll(".svg-lines").attr("cursor", "grab");
-	} else {
-		d3.selectAll(".svg-lines").attr("cursor", null);
-	}
-
-	if (editType == 1 || editType == 4) {
-		d3.selectAll(".svg-faces").attr("cursor", "grab");
-	} else {
-		d3.selectAll(".svg-faces").attr("cursor", null);
-	}
+	updateEditType();
 };
 
 var btnUndoPress = function() {
+	keydown = "~";
 	if (undoHistoryIndex > 0) undoHistoryIndex--;
 	draw();
 };
 var btnRedoPress = function() {
+	keydown = "~";
 	if (undoHistoryIndex < undoHistory.length) undoHistoryIndex++;
 	draw();
 };
 
 var btnZoomInPress = function() {
+	keydown = "~";
 	enableZoom();
 	zoom.scaleBy(mainSVG, 1.25);
 	mainSVG.call(zoom);
 };
 var btnZoomOutPress = function() {
+	keydown = "~";
 	enableZoom();
 	zoom.scaleBy(mainSVG, 0.8);
 	mainSVG.call(zoom);
@@ -239,7 +230,7 @@ var btnZoomResetPress = function() {
 
 var zoomStart = function() {
 	if (editType == 0) {
-		mainSVG.mainGroup.attr("cursor", "grabbing");
+		mainSVG.attr("cursor", "grabbing");
 	}
 };
 var zooming = function() {
@@ -260,11 +251,12 @@ var zooming = function() {
 };
 var zoomEnd = function() {
 	if (editType == 0) {
-		mainSVG.mainGroup.attr("cursor", "grab");
+		mainSVG.attr("cursor", "grab");
 	}
 };
 
 var dragPointStart = function() {
+	keydown = "~";
 	var point = getByID(
 		undoHistory[undoHistoryIndex].points,
 		d3
@@ -273,31 +265,58 @@ var dragPointStart = function() {
 			.attr("id")
 	);
 	initial = { x: point.x, y: point.y };
-	if (d3.event.sourceEvent.shiftKey) {
-		point.selected = !point.selected;
-	} else {
-		point.selected = !point.selected;
-	}
 	d3.selectAll(".svg-points").attr("cursor", "grabbing");
 };
 var dragPoint = function() {
 	var p = d3.select(this);
-	dx = d3.event.x - initial.x;
-	dy = d3.event.y - initial.y;
+	var dx = d3.event.x - initial.x;
+	var dy = d3.event.y - initial.y;
 	if (dx * dx + dy * dy > p.attr("r") * p.attr("r")) {
 		p.attr("cx", d3.event.x).attr("cy", d3.event.y);
 	}
 };
 var dragPointEnd = function() {
+	keydown = "~";
 	var p = d3.select(this);
-	dx = d3.event.x - initial.x;
-	dy = d3.event.y - initial.y;
+	var point = getPointByID(p.attr("id"));
+	var dx = d3.event.x - initial.x;
+	var dy = d3.event.y - initial.y;
 	if (dx * dx + dy * dy > p.attr("r") * p.attr("r")) {
-		console.log("Hi");
 		updatePointLocation(p.attr("id"), d3.event.x, d3.event.y);
 	}
 	d3.selectAll(".svg-points").attr("cursor", "grab");
+	testAndSelectPoint(point);
 	draw();
+};
+
+var downBack = function() {
+	keydown = "~";
+	downCoord.x = d3.event.x;
+	downCoord.y = d3.event.y;
+};
+
+var upBack = function() {
+	keydown = "~";
+	if (
+		editType != 0 &&
+		Math.abs(d3.event.x - downCoord.x) < threshold &&
+		Math.abs(d3.event.y - downCoord.y) < threshold
+	) {
+		var coords = eventCoordsToSVG(d3.event);
+		addPoint(coords.x, coords.y);
+	}
+};
+
+var downKey = function() {
+	keydown = d3.event.key;
+};
+
+var upKey = function() {
+	if (d3.event.key == keydown) {
+		if (keydown == "l") {
+			addDelaunayLine();
+		}
+	}
 };
 
 /*     --==++==--     --==++[| History |]++==--     --==++==--     */
@@ -314,10 +333,36 @@ function operation(fn) {
 
 function addPoint(x, y) {
 	operation(function(data) {
-		data.points.push(new Point(new Date().getTime(), x, y));
+		var id = `p${new Date().getTime()}|${(idAccumulator++)
+			.toString()
+			.padStart(8, "0")}`;
+		var newPoint = new Point(id, x, y);
+		data.points.push(newPoint);
+
+		var pointIsSelected = !newPoint.selected;
+		if (d3.event.shiftKey) {
+			newPoint.selected = pointIsSelected;
+			if (pointIsSelected) {
+				selectedPoints.push(newPoint);
+			} else {
+				selectedPoints = selectedPoints.filter(function(p) {
+					return p.id != newPoint.id;
+				});
+			}
+		} else {
+			for (var i = 0; i < data.points.length; i++) {
+				data.points[i].selected = false;
+			}
+			selectedPoints = [];
+			newPoint.selected = pointIsSelected;
+			if (newPoint.selected) {
+				selectedPoints.push(newPoint);
+			}
+		}
 		return data;
 	});
 }
+
 function removePoint(id) {
 	operation(function(data) {
 		var newPoints = [];
@@ -330,6 +375,7 @@ function removePoint(id) {
 		return data;
 	});
 }
+
 function updatePointLocation(id, x, y) {
 	operation(function(data) {
 		var oldPoint = null;
@@ -358,9 +404,29 @@ function updatePointLocation(id, x, y) {
 	});
 }
 
-function addLine(point1, point2) {
+function addLine() {
 	operation(function(data) {
-		data.lines.push(new Line(new Date().getTime(), point1, point2));
+		for (var i = 0; i < selectedPoints.length - 1; i++) {
+			for (var j = 1; j < selectedPoints.length; j++) {
+				if (!lineExists(selectedPoints[i].id, selectedPoints[j].id)) {
+					var id = `l${new Date().getTime()}|${(idAccumulator++)
+						.toString()
+						.padStart(8, "0")}`;
+					data.lines.push(
+						new Line(id, selectedPoints[i].id, selectedPoints[j].id)
+					);
+				}
+			}
+		}
+		return data;
+	});
+}
+function addDelaunayLine() {
+	operation(function(data) {
+		var lines = delaunayLines(selectedPoints);
+		for (var i = 0; i < lines.length; i++) {
+			data.lines.push(lines[i]);
+		}
 		return data;
 	});
 }
@@ -379,7 +445,10 @@ function removeLine(id) {
 
 function addFace(x, y) {
 	operation(function(data) {
-		data.faces.push(new Face(new Date().getTime(), x, y));
+		var id = `f${new Date().getTime()}|${(idAccumulator++)
+			.toString()
+			.padStart(8, "0")}`;
+		data.faces.push(new Face(id, x, y));
 		return data;
 	});
 }
@@ -440,6 +509,158 @@ function duplicateData(data) {
 	return newData;
 }
 
+function testAndSelectPoint(point) {
+	var shift;
+	if (d3.event.sourceEvent) {
+		shift = d3.event.sourceEvent.shiftKey;
+	} else {
+		shift = d3.event.shiftKey;
+	}
+	if (shift) {
+		andSelectPoint(point);
+	} else {
+		selectPoint(point);
+	}
+}
+
+function selectPoint(point) {
+	var pointIsSelected = !point.selected;
+	for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
+		undoHistory[undoHistoryIndex].points[i].selected = false;
+	}
+	selectedPoints = [];
+	point.selected = pointIsSelected;
+	if (point.selected) {
+		selectedPoints.push(point);
+	}
+}
+
+function andSelectPoint(point) {
+	point.selected = !point.selected;
+	if (point.selected) {
+		selectedPoints.push(point);
+	} else {
+		selectedPoints = selectedPoints.filter(function(p) {
+			return p.id != point.id;
+		});
+	}
+}
+
+function lineExists(point1, point2) {
+	var output = false;
+	for (var i = 0; i < undoHistory[undoHistoryIndex].lines.length; i++) {
+		if (
+			(undoHistory[undoHistoryIndex].lines[i].point1 == point1 &&
+				undoHistory[undoHistoryIndex].lines[i].point2 == point2) ||
+			(undoHistory[undoHistoryIndex].lines[i].point1 == point2 &&
+				undoHistory[undoHistoryIndex].lines[i].point2 == point1)
+		) {
+			output = true;
+			break;
+		}
+	}
+	return output;
+}
+
+function delaunayLines(pointArray) {
+	var lineArray = [];
+	var pointValueArray = [];
+	for (var i = 0; i < pointArray.length; i++) {
+		pointValueArray.push(pointArray[i].x);
+		pointValueArray.push(pointArray[i].y);
+	}
+	console.log(pointArray);
+	console.log(pointValueArray);
+	var delaunay = new Delaunay(pointValueArray);
+	var { points, halfedges, triangles, hull } = delaunay;
+	for (let i = 0; i < halfedges.length; ++i) {
+		var j = halfedges[i];
+		if (j < i) continue;
+		var ti = triangles[i];
+		var tj = triangles[j];
+		var point1id = null;
+		var point2id = null;
+		for (var j = 0; j < pointArray.length; j++) {
+			if (
+				(points[ti * 2] == pointValueArray[2 * j] &&
+					points[ti * 2 + 1] == pointValueArray[2 * j + 1]) ||
+				(points[ti * 2] == pointValueArray[2 * j + 1] &&
+					points[ti * 2 + 1] == pointValueArray[2 * j])
+			) {
+				point1id = pointArray[j].id;
+			}
+			if (
+				(points[tj * 2] == pointValueArray[2 * j] &&
+					points[tj * 2 + 1] == pointValueArray[2 * j + 1]) ||
+				(points[tj * 2] == pointValueArray[2 * j + 1] &&
+					points[tj * 2 + 1] == pointValueArray[2 * j])
+			) {
+				point2id = pointArray[j].id;
+			}
+		}
+		if (point1id && point2id && !lineExists(point1id, point2id)) {
+			var id = `l${new Date().getTime()}|${(idAccumulator++)
+				.toString()
+				.padStart(8, "0")}`;
+			lineArray.push(new Line(id, point1id, point2id));
+		}
+	}
+	for (let i = -1; i < hull.length; ++i) {
+		var point1id = null;
+		var point2id = null;
+		var point1index = i;
+		var point2index = i + 1;
+		if (point1index == -1) {
+			point1index = hull.length;
+		}
+		for (var j = 0; j < pointArray.length; j++) {
+			if (
+				(points[i * 2] == pointArray[point1index].x &&
+					points[i * 2 + 1] == pointArray[point1index].y) ||
+				(points[i * 2] == pointArray[point1index].y &&
+					points[i * 2 + 1] == pointArray[point1index].x)
+			) {
+				point1id = pointArray[j].id;
+			}
+			if (
+				(points[i * 2] == pointArray[point2index].x &&
+					points[i * 2 + 1] == pointArray[point2index].y) ||
+				(points[i * 2] == pointArray[point2index].y &&
+					points[i * 2 + 1] == pointArray[point2index].x)
+			) {
+				point2id = pointArray[j].id;
+			}
+		}
+		if (point1id && point2id && !lineExists(point1id, point2id)) {
+			var id = `l${new Date().getTime()}|${(idAccumulator++)
+				.toString()
+				.padStart(8, "0")}`;
+			lineArray.push(new Line(id, point1id, point2id));
+		}
+	}
+
+	return lineArray;
+}
+
+function getPointByID(id) {
+	return getByID(undoHistory[undoHistoryIndex].points, id);
+}
+function getLineByID(id) {
+	return getByID(undoHistory[undoHistoryIndex].lines, id);
+}
+function getFaceByID(id) {
+	return getByID(undoHistory[undoHistoryIndex].faces, id);
+}
+function getAnyByID(id) {
+	if (id.contains("f")) {
+		return getFaceByID(id);
+	} else if (id.contains("l")) {
+		return getLineByID(id);
+	} else {
+		return getPointByID(id);
+	}
+}
+
 function getByID(dataArray, id) {
 	var output = null;
 	for (var i = 0; i < dataArray.length; i++) {
@@ -449,6 +670,21 @@ function getByID(dataArray, id) {
 		}
 	}
 	return output;
+}
+
+function eventCoordsToSVG(e) {
+	return screenCoordsToSVG(e.offsetX, e.offsetY);
+}
+
+function screenCoordsToSVG(x, y) {
+	var svg = mainSVG.node();
+	var group = mainSVG.mainGroup.node();
+	var positionInfo = svg.getBoundingClientRect();
+	var h = positionInfo.height;
+	var w = positionInfo.width;
+	var trans = d3.zoomTransform(group);
+
+	return { x: (x / w - trans.x) / trans.k, y: (y / h - trans.y) / trans.k };
 }
 
 function enableZoom(allowed = true) {
@@ -462,6 +698,39 @@ function enableZoom(allowed = true) {
 		zoom.filter(function() {
 			return false;
 		});
+	}
+}
+
+function updateEditType() {
+	for (var i = 0; i < editTypeIcons.length; i++) {
+		editTypeIcons[i].attr("style", "display:none;");
+	}
+
+	editTypeIcons[editType].attr("style", "display: inline-block");
+	btnEditType.attr("title", editTypeIcons[editType].attr("title"));
+
+	if (editType == 0) {
+		mainSVG.attr("cursor", "grab");
+	} else {
+		mainSVG.attr("cursor", null);
+	}
+
+	if (editType == 1 || editType == 2) {
+		d3.selectAll(".svg-points").attr("cursor", "grab");
+	} else {
+		d3.selectAll(".svg-points").attr("cursor", null);
+	}
+
+	if (editType == 1 || editType == 3) {
+		d3.selectAll(".svg-lines").attr("cursor", "grab");
+	} else {
+		d3.selectAll(".svg-lines").attr("cursor", null);
+	}
+
+	if (editType == 1 || editType == 4) {
+		d3.selectAll(".svg-faces").attr("cursor", "grab");
+	} else {
+		d3.selectAll(".svg-faces").attr("cursor", null);
 	}
 }
 
@@ -543,7 +812,15 @@ $(document).ready(function() {
 	btnUndo.on("click", btnUndoPress);
 	btnRedo.on("click", btnRedoPress);
 
-	mainSVG.mainGroup = mainSVG.append("g").attr("cursor", "grab");
+	d3.select("body")
+		.on("keydown", downKey)
+		.on("keyup", upKey);
+
+	mainSVG
+		.attr("cursor", "grab")
+		.on("mousedown", downBack)
+		.on("mouseup", upBack);
+	mainSVG.mainGroup = mainSVG.append("g");
 	mainSVG.mainGroup
 		.append("rect")
 		.attr("x", -borderWidth / 2)
@@ -553,9 +830,9 @@ $(document).ready(function() {
 		.attr("fill", "rgba(0,0,0,0)")
 		.attr("stroke", "#000000")
 		.attr("stroke-width", borderWidth);
-	mainSVG.points = mainSVG.mainGroup.append("g");
-	mainSVG.lines = mainSVG.mainGroup.append("g");
 	mainSVG.faces = mainSVG.mainGroup.append("g");
+	mainSVG.lines = mainSVG.mainGroup.append("g");
+	mainSVG.points = mainSVG.mainGroup.append("g");
 
 	sub1SVG.viewGroup = sub1SVG.append("g");
 	sub1SVG.points = sub1SVG.append("g");
