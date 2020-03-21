@@ -16,9 +16,9 @@ body {
 }
 
 .square-border {
+	position: absolute;
 	width: 100%;
 	height: 100%;
-	position: absolute;
 	left: 0;
 	top: 0;
 	background-color: $border-color;
@@ -64,4 +64,85 @@ body {
 .sub-7-pos {
 	height: calc(100% - #{$border-width-2});
 	top: $border-width;
+}
+
+#content-container {
+	width: calc(min(100vw, 100vh) - 50px);
+}
+
+#main-svg {
+	visibility: hidden;
+}
+
+#main-svg g {
+	visibility: visible;
+}
+
+#left-sidebar {
+	z-index: 2;
+}
+
+#left-right-cover {
+	position: relative;
+	outline-color: #343a40;
+	box-sizing: content-box;
+	pointer-events: none;
+	outline-style: solid;
+	background-color: transparent;
+	outline-width: 100vw;
+	margin-right: -15px;
+	margin-left: -15px;
+	left: 0;
+	top: 0px;
+	z-index: 50;
+	width: calc(min(100vw, 100vh) - 50px);
+	height: calc(min(100vw, 100vh) - 50px);
+	margin-bottom: calc(-1 * calc(min(100vw, 100vh) - 50px));
+}
+
+#bottom-cover {
+	z-index: 2;
+	position: relative;
+	height: 100vh;
+	top: 0;
+}
+
+#main-border {
+	position: absolute;
+	border: #343a40;
+	pointer-events: none;
+	border-style: solid;
+	background-color: transparent;
+	width: 100%;
+	height: 100%;
+	border-width: 2px;
+	z-index: 10;
+}
+
+#overflow-disabler {
+	position: absolute;
+	width: 100vw;
+	height: 100vh;
+	left: 0;
+	top: 0;
+	overflow: hidden;
+}
+
+#overflow-disabler-bottom-left {
+	display: block;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+}
+
+#overflow-disabler-bottom-right {
+	display: block;
+	position: absolute;
+	right: 0;
+	bottom: 0;
+}
+
+body {
+	position: relative;
+	margin: 0px;
 }

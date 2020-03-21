@@ -27,6 +27,20 @@ const btnZoomOut = d3.select("#btn-zoom-out");
 const mainSVG = d3.select("#main-svg");
 const sub1SVG = d3.select("#sub-1-svg");
 
+const mainCanvas = d3.select("#main-canvas");
+const sub1Canvas = d3.select("#sub-1-canvas");
+const sub2Canvas = d3.select("#sub-2-canvas");
+const sub3Canvas = d3.select("#sub-3-canvas");
+const sub4Canvas = d3.select("#sub-4-canvas");
+const sub5Canvas = d3.select("#sub-5-canvas");
+const sub6Canvas = d3.select("#sub-6-canvas");
+const sub7Canvas = d3.select("#sub-7-canvas");
+
+const backgroundCanvas = d3.select("#background-canvas");
+const backForm = d3.select("#backgroundImageLoader");
+
+const zoomFactor = 1.25;
+
 /*     --==++==--     --==++[| Variables |]++==--     --==++==--     */
 
 var undoHistoryIndex = 0;
@@ -50,7 +64,7 @@ class Point {
 		id,
 		x,
 		y,
-		radius = 0.005,
+		radius = 0.01,
 		color = "rgba(0,0,0,1)",
 		selected = false
 	) {
@@ -126,7 +140,7 @@ class Line {
 		if (p1.selected && p2.selected) {
 			color = `rgba(255,135,61,0.7)" stroke-dasharray="0.00001,0.0083333`;
 		}
-		return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke-width="0.0015" stroke="${color}" stroke-linecap="round"/>`;
+		return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke-width="0.005" stroke="${color}" stroke-linecap="round"/>`;
 	}
 
 	svgExportLine() {
@@ -211,13 +225,13 @@ var btnRedoPress = function() {
 var btnZoomInPress = function() {
 	keydown = "~";
 	enableZoom();
-	zoom.scaleBy(mainSVG, 1.25);
+	zoom.scaleBy(mainSVG, zoomFactor);
 	mainSVG.call(zoom);
 };
 var btnZoomOutPress = function() {
 	keydown = "~";
 	enableZoom();
-	zoom.scaleBy(mainSVG, 0.8);
+	zoom.scaleBy(mainSVG, 1 / zoomFactor);
 	mainSVG.call(zoom);
 };
 var btnZoomResetPress = function() {
@@ -245,6 +259,18 @@ var zooming = function() {
 			1 / d3.event.transform.k +
 			")"
 	);
+	var tl = d3.event.transform.apply([0, 0]);
+	var br = d3.event.transform.apply([1, 1]);
+	var tlSect = svgCoordsToSection(tl[0], tl[1]);
+	var brSect = svgCoordsToSection(br[0], br[1]);
+	console.log(tl);
+	console.log(br);
+	console.log(tlSect);
+	console.log(brSect);
+	backgroundCanvas.style("left", `${tlSect.x}px`);
+	backgroundCanvas.style("top", `${tlSect.y}px`);
+	backgroundCanvas.style("width", `${brSect.x - tlSect.x}px`);
+	backgroundCanvas.style("height", `${brSect.y - tlSect.y}px`);
 	if (editType != 0) {
 		enableZoom(false);
 	}
@@ -316,6 +342,36 @@ var upKey = function() {
 		if (keydown == "l") {
 			addDelaunayLine();
 		}
+		if (keydown == "Backspace" || keydown == "d" || keydown == "Delete") {
+			removeSelectedPoints();
+		}
+	}
+};
+
+var uploadBackground = function() {
+	//d3.event.preventDefault();
+
+	if (this.files && this.files[0]) {
+		var canvas = backgroundCanvas.node();
+		var ctx = canvas.getContext("2d");
+
+		var reader = new FileReader();
+		reader.onload = function(e) {
+			var img = new Image();
+			img.onload = function() {
+				if (img.width > img.height) {
+					canvas.width = img.width;
+					canvas.height = img.width;
+					ctx.drawImage(img, 0, (img.width - img.height) / 2);
+				} else {
+					canvas.width = img.height;
+					canvas.height = img.height;
+					ctx.drawImage(img, (img.height - img.width) / 2, 0);
+				}
+			};
+			img.src = e.target.result;
+		};
+		reader.readAsDataURL(this.files[0]);
 	}
 };
 
@@ -363,15 +419,60 @@ function addPoint(x, y) {
 	});
 }
 
-function removePoint(id) {
+function removeSelectedPoints() {
 	operation(function(data) {
 		var newPoints = [];
-		data.points.forEach(function(point) {
-			if (point.id != id) {
-				newPoints.push(point);
+		var removedPoints = [];
+		for (var i = 0; i < data.points.length; i++) {
+			var removed = false;
+			for (var j = 0; j < selectedPoints.length; j++) {
+				if (data.points[i].id == selectedPoints[j].id) {
+					removedPoints.push(data.points[i]);
+					removed = true;
+					break;
+				}
 			}
-		});
+			if (!removed) {
+				newPoints.push(data.points[i]);
+			}
+		}
 		data.points = newPoints;
+
+		var newLines = [];
+		for (var j = 0; j < data.lines.length; j++) {
+			var removed = false;
+			for (var k = 0; k < removedPoints.length; k++) {
+				if (
+					data.lines[j].point1 == removedPoints[k].id ||
+					data.lines[j].point2 == removedPoints[k].id
+				) {
+					removed = true;
+				}
+			}
+			if (!removed) {
+				newLines.push(data.lines[j]);
+			}
+		}
+		data.lines = newLines;
+
+		var newFaces = [];
+		for (var j = 0; j < data.faces.length; j++) {
+			var removed = false;
+			for (var k = 0; k < removedPoints.length; k++) {
+				if (
+					data.faces[j].point1 == removedPoints[k].id ||
+					data.faces[j].point2 == removedPoints[k].id ||
+					data.faces[j].point3 == removedPoints[k].id
+				) {
+					removed = true;
+				}
+			}
+			if (!removed) {
+				newFaces.push(data.faces[j]);
+			}
+		}
+		data.faces = newFaces;
+
 		return data;
 	});
 }
@@ -464,6 +565,8 @@ function removeFace(id) {
 		return data;
 	});
 }
+
+/*     --==++==--     --==++[| Data |]++==--     --==++==--     */
 
 /*     --==++==--     --==++[| Utilities |]++==--     --==++==--     */
 
@@ -569,8 +672,6 @@ function delaunayLines(pointArray) {
 		pointValueArray.push(pointArray[i].x);
 		pointValueArray.push(pointArray[i].y);
 	}
-	console.log(pointArray);
-	console.log(pointValueArray);
 	var delaunay = new Delaunay(pointValueArray);
 	var { points, halfedges, triangles, hull } = delaunay;
 	for (let i = 0; i < halfedges.length; ++i) {
@@ -608,25 +709,27 @@ function delaunayLines(pointArray) {
 	for (let i = -1; i < hull.length; ++i) {
 		var point1id = null;
 		var point2id = null;
-		var point1index = i;
-		var point2index = i + 1;
-		if (point1index == -1) {
-			point1index = hull.length;
+		var point1index;
+		if (i == 0) {
+			point1index = hull[hull.length - 1];
+		} else {
+			point1index = hull[i - 1];
 		}
+		var point2index = hull[i];
 		for (var j = 0; j < pointArray.length; j++) {
 			if (
-				(points[i * 2] == pointArray[point1index].x &&
-					points[i * 2 + 1] == pointArray[point1index].y) ||
-				(points[i * 2] == pointArray[point1index].y &&
-					points[i * 2 + 1] == pointArray[point1index].x)
+				(points[point1index * 2] == pointValueArray[2 * j] &&
+					points[point1index * 2 + 1] == pointValueArray[2 * j + 1]) ||
+				(points[point1index * 2] == pointValueArray[2 * j + 1] &&
+					points[point1index * 2 + 1] == pointValueArray[2 * j])
 			) {
 				point1id = pointArray[j].id;
 			}
 			if (
-				(points[i * 2] == pointArray[point2index].x &&
-					points[i * 2 + 1] == pointArray[point2index].y) ||
-				(points[i * 2] == pointArray[point2index].y &&
-					points[i * 2 + 1] == pointArray[point2index].x)
+				(points[point2index * 2] == pointValueArray[2 * j] &&
+					points[point2index * 2 + 1] == pointValueArray[2 * j + 1]) ||
+				(points[point2index * 2] == pointValueArray[2 * j + 1] &&
+					points[point2index * 2 + 1] == pointValueArray[2 * j])
 			) {
 				point2id = pointArray[j].id;
 			}
@@ -685,6 +788,17 @@ function screenCoordsToSVG(x, y) {
 	var trans = d3.zoomTransform(group);
 
 	return { x: (x / w - trans.x) / trans.k, y: (y / h - trans.y) / trans.k };
+}
+
+function svgCoordsToSection(x, y) {
+	var svg = mainSVG.node();
+	var group = mainSVG.mainGroup.node();
+	var positionInfo = svg.getBoundingClientRect();
+	var h = positionInfo.height;
+	var w = positionInfo.width;
+	var trans = d3.zoomTransform(group);
+
+	return { x: (x + 0.005) * w, y: (y + 0.005) * h };
 }
 
 function enableZoom(allowed = true) {
@@ -812,6 +926,8 @@ $(document).ready(function() {
 	btnUndo.on("click", btnUndoPress);
 	btnRedo.on("click", btnRedoPress);
 
+	$("#backgroundImageLoader").on("change", uploadBackground);
+
 	d3.select("body")
 		.on("keydown", downKey)
 		.on("keyup", upKey);
@@ -855,10 +971,10 @@ $(document).ready(function() {
 				[1, 1]
 			])
 			.translateExtent([
-				[-0.75, -0.75],
-				[1.75, 1.75]
+				[-2, -2],
+				[3, 3]
 			])
-			.scaleExtent([0.512, 3.0517578125])
+			.scaleExtent([Math.pow(1 / zoomFactor, 8), Math.pow(zoomFactor, 8)])
 			.on("start", zoomStart)
 			.on("zoom", zooming)
 			.on("end", zoomEnd)
