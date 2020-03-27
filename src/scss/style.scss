@@ -82,6 +82,15 @@ body {
 	z-index: 2;
 }
 
+.invisible {
+	display: none;
+	visibility: hidden;
+}
+
+.btn-extra {
+	background-color: rgba(220, 220, 220, 1);
+}
+
 #left-right-cover {
 	position: relative;
 	outline-color: #343a40;
