@@ -18,6 +18,7 @@
 	},
 	"homepage": "https://github.com/Luke-Draper/progrimage#readme",
 	"dependencies": {
+		"@jaames/iro": "^5.1.5",
 		"bootstrap": "^4.4.1",
 		"d3": "^5.15.0",
 		"d3-delaunay": "^5.2.1",

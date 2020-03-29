@@ -1,6 +1,7 @@
 import "../scss/style.js";
 import * as d3 from "../../node_modules/d3/dist/d3.js";
 import { Delaunay } from "d3-delaunay";
+import iro from "@jaames/iro";
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -50,14 +51,15 @@ const sub1SVG = d3.select("#sub-1-svg");
 const mainCanvas = d3.select("#main-canvas");
 const sub1Canvas = d3.select("#sub-1-canvas");
 const sub2Canvas = d3.select("#sub-2-canvas");
-const sub3Canvas = d3.select("#sub-3-canvas");
-const sub4Canvas = d3.select("#sub-4-canvas");
-const sub5Canvas = d3.select("#sub-5-canvas");
-const sub6Canvas = d3.select("#sub-6-canvas");
-const sub7Canvas = d3.select("#sub-7-canvas");
 
 const backgroundCanvas = d3.select("#background-canvas");
 const backForm = d3.select("#backgroundImageLoader");
+
+const miniDisplay = d3.select("#mini-display");
+const miniDisplayToggle = d3.select("#mini-display-toggle");
+const btnMiniDisplay = d3.select("#btn-mini-display-toggle");
+const btnMiniDisplayOpenIcon = d3.select("#btn-mini-display-toggle-open");
+const btnMiniDisplayCloseIcon = d3.select("#btn-mini-display-toggle-close");
 
 const zoomFactor = 1.25;
 
@@ -82,6 +84,8 @@ var undoHistory = [];
 
 var zoom;
 
+var currentLayer = 100;
+
 var idAccumulator = 0;
 var initial = null;
 
@@ -97,6 +101,8 @@ var visibleBackground = true;
 var visiblePoints = true;
 var visibleLines = true;
 var visibleFaces = true;
+
+var miniDisplayVisible = true;
 
 var mouseClientCoords = { x: 0, y: 0 };
 var mouseOffsetCoords = { x: 0, y: 0 };
@@ -118,9 +124,10 @@ var mouseOffsetCoords = { x: 0, y: 0 };
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 class SVGCanvasElement {
-	constructor(id, color = "rgba(0,0,0,1)") {
+	constructor(id, color = "rgba(0,0,0,1)", layer = currentLayer) {
 		this.id = id;
 		this.color = color;
+		this.layer = layer;
 	}
 
 	htmlElement() {
@@ -174,9 +181,10 @@ class Point extends SVGCanvasElement {
 		y,
 		radius = 0.0075,
 		color = "rgba(0,0,0,1)",
+		layer = currentLayer,
 		selected = false
 	) {
-		super(id, color);
+		super(id, color, layer);
 		this.x = x;
 		this.y = y;
 		this.radius = radius;
@@ -214,7 +222,7 @@ class Point extends SVGCanvasElement {
 			return "";
 		}
 		var selectAttributes = "";
-		if (this.selected) {
+		if (this.isSelected()) {
 			var stroke = this.radius / 5;
 			var dash = stroke / 3;
 			selectAttributes = ` stroke="#ff873d" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="0.00001,${dash}"`;
@@ -232,7 +240,7 @@ class Point extends SVGCanvasElement {
 
 	svgBasic() {
 		var color = "rgba(0,128,0,1)";
-		if (this.selected) {
+		if (this.isSelected()) {
 			color = "#ff873d";
 		}
 		return `<circle cx="${this.x}" cy="${this.y}" r="0.005" fill="${color}"/>`;
@@ -250,9 +258,10 @@ class Line extends SVGCanvasElement {
 		point2ID,
 		strokeWidth = 0.005,
 		color = "rgba(0,255,0,1)",
-		lineCap = "round"
+		lineCap = "round",
+		layer = currentLayer
 	) {
-		super(id, color);
+		super(id, color, layer);
 		this.point1ID = point1ID;
 		this.point2ID = point2ID;
 		this.strokeWidth = strokeWidth;
@@ -307,7 +316,6 @@ class Line extends SVGCanvasElement {
 			this.d3Selection()
 				.attr("x1", getByID(this.point1ID).x + offsetX)
 				.attr("y1", getByID(this.point1ID).y + offsetY);
-			d3.select(`id="#${this.id}-selected"`);
 		}
 		if (getByID(this.point2ID).isSelected()) {
 			this.d3Selection()
@@ -340,8 +348,15 @@ class Line extends SVGCanvasElement {
 }
 
 class Face extends SVGCanvasElement {
-	constructor(id, point1ID, point2ID, point3ID, color = "rgba(0,0,0,0.5)") {
-		super(id, color);
+	constructor(
+		id,
+		point1ID,
+		point2ID,
+		point3ID,
+		color = "rgba(0,0,0,0.5)",
+		layer = currentLayer
+	) {
+		super(id, color, layer);
 		this.point1ID = point1ID;
 		this.point2ID = point2ID;
 		this.point3ID = point3ID;
@@ -550,6 +565,21 @@ var btnZoomResetPress = function() {
 		.call(zoom.transform, d3.zoomIdentity);
 };
 
+var btnMiniDisplayPress = function() {
+	miniDisplayVisible = !miniDisplayVisible;
+	if (miniDisplayVisible) {
+		miniDisplay.style("display", "inherit");
+		btnMiniDisplayOpenIcon.style("display", "none");
+		btnMiniDisplayCloseIcon.style("display", "inherit");
+		miniDisplayToggle.style("left", "19.7%");
+	} else {
+		miniDisplay.style("display", "none");
+		btnMiniDisplayOpenIcon.style("display", "inherit");
+		btnMiniDisplayCloseIcon.style("display", "none");
+		miniDisplayToggle.style("left", "0");
+	}
+};
+
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
@@ -604,7 +634,7 @@ var dragPointStart = function() {
 	d3.selectAll(".svg-points").attr("cursor", "grabbing");
 };
 var dragPoint = function() {
-	var point = getPointByID(d3.select(this).attr("id"));
+	var point = getByID(d3.select(this).attr("id"));
 	var offsetX = d3.event.x - initial.x;
 	var offsetY = d3.event.y - initial.y;
 	if (
@@ -618,7 +648,7 @@ var dragPoint = function() {
 var dragPointEnd = function() {
 	keydown = "~";
 
-	var point = getPointByID(d3.select(this).attr("id"));
+	var point = getByID(d3.select(this).attr("id"));
 	var offsetX = d3.event.x - initial.x;
 	var offsetY = d3.event.y - initial.y;
 	var moved = false;
@@ -638,11 +668,7 @@ var dragPointEnd = function() {
 			(d3.event.sourceEvent && d3.event.sourceEvent.shiftKey)
 		)
 	) {
-		for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
-			if (undoHistory[undoHistoryIndex].points[i].hasSelected()) {
-				undoHistory[undoHistoryIndex].points[i].deselect();
-			}
-		}
+		deselectAll();
 	}
 	point.select();
 
@@ -651,17 +677,60 @@ var dragPointEnd = function() {
 
 var dragLineStart = function() {
 	d3.selectAll(".svg-lines").attr("cursor", "grabbing");
-	var line = getLineByID(d3.select(this).attr("id"));
-	dragPointStart.call(d3.select(`#${line.point1.id}`).node());
+	var line = getByID(d3.select(this).attr("id"));
+	dragPointStart.call(d3.select(`#${line.point1ID}`).node());
 };
 var dragLine = function() {
-	var line = getLineByID(d3.select(this).attr("id"));
-	dragPoint.call(d3.select(`#${line.point1}`).node());
+	var line = getByID(d3.select(this).attr("id"));
+	dragPoint.call(d3.select(`#${line.point1ID}`).node());
 };
 var dragLineEnd = function() {
-	var line = getLineByID(d3.select(this).attr("id"));
+	var line = getByID(d3.select(this).attr("id"));
 	d3.selectAll(".svg-lines").attr("cursor", "grab");
-	dragPointEnd.call(d3.select(`#${line.point1}`).node());
+	dragPointEnd.call(d3.select(`#${line.point1ID}`).node());
+
+	var offsetX = d3.event.x - initial.x;
+	var offsetY = d3.event.y - initial.y;
+	if (
+		!(offsetX * offsetX + offsetY * offsetY > threshold) &&
+		!(
+			d3.event.shiftKey ||
+			(d3.event.sourceEvent && d3.event.sourceEvent.shiftKey)
+		)
+	) {
+		deselectAll();
+	}
+	line.select();
+	draw();
+};
+
+var dragFaceStart = function() {
+	d3.selectAll(".svg-faces").attr("cursor", "grabbing");
+	var face = getByID(d3.select(this).attr("id"));
+	dragPointStart.call(d3.select(`#${face.point1ID}`).node());
+};
+var dragFace = function() {
+	var face = getByID(d3.select(this).attr("id"));
+	dragPoint.call(d3.select(`#${face.point1ID}`).node());
+};
+var dragFaceEnd = function() {
+	var face = getByID(d3.select(this).attr("id"));
+	d3.selectAll(".svg-faces").attr("cursor", "grab");
+	dragPointEnd.call(d3.select(`#${face.point1ID}`).node());
+
+	var offsetX = d3.event.x - initial.x;
+	var offsetY = d3.event.y - initial.y;
+	if (
+		!(offsetX * offsetX + offsetY * offsetY > threshold) &&
+		!(
+			d3.event.shiftKey ||
+			(d3.event.sourceEvent && d3.event.sourceEvent.shiftKey)
+		)
+	) {
+		deselectAll();
+	}
+	face.select();
+	draw();
 };
 
 var boxSelectStart = function() {
@@ -713,11 +782,7 @@ var boxSelectEnd = function() {
 				(d3.event.sourceEvent && d3.event.sourceEvent.shiftKey)
 			)
 		) {
-			for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
-				if (undoHistory[undoHistoryIndex].points[i].hasSelected()) {
-					undoHistory[undoHistoryIndex].points[i].deselect();
-				}
-			}
+			deselectAll();
 		}
 		for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
 			if (
@@ -895,6 +960,7 @@ function duplicateData(data) {
 				point.y,
 				point.radius,
 				point.color,
+				point.layer,
 				point.selected
 			)
 		);
@@ -904,18 +970,26 @@ function duplicateData(data) {
 		newData.lines.push(
 			new Line(
 				line.id,
-				line.point1,
-				line.point2,
+				line.point1ID,
+				line.point2ID,
 				line.strokeWidth,
 				line.color,
-				line.lineCap
+				line.lineCap,
+				line.layer
 			)
 		);
 	});
 
 	data.faces.forEach(function(face) {
 		newData.faces.push(
-			new Face(face.id, face.point1, face.point2, face.point3, face.color)
+			new Face(
+				face.id,
+				face.point1ID,
+				face.point2ID,
+				face.point3ID,
+				face.color,
+				face.layer
+			)
 		);
 	});
 
@@ -923,9 +997,9 @@ function duplicateData(data) {
 }
 
 function setupNewData(newData) {
-	newData.pointMap = {};
-	newData.lineMap = {};
-	newData.faceMap = {};
+	newData.pointMap = new Map();
+	newData.lineMap = new Map();
+	newData.faceMap = new Map();
 
 	for (var i = 0; i < newData.points.length; i++) {
 		newData.pointMap.set(newData.points[i].id, i);
@@ -935,7 +1009,7 @@ function setupNewData(newData) {
 		newData.lineMap.set(newData.lines[i].id, i);
 	}
 
-	for (var i = 0; i < newData.points.length; i++) {
+	for (var i = 0; i < newData.faces.length; i++) {
 		newData.faceMap.set(newData.faces[i].id, i);
 	}
 }
@@ -974,24 +1048,6 @@ function removeSelectedPoints() {
 			}
 		}
 
-		for (var i = 0; i < newPoints.length; i++) {
-			for (var j = 0; j < data.lines.length; j++) {
-				if (data.lines[j].point1.id == newPoints[i].id) {
-					data.lines[j].point1 = newPoints[i];
-				} else if (data.lines[j].point2.id == newPoints[i].id) {
-					data.lines[j].point2 = newPoints[i];
-				}
-			}
-			for (var j = 0; j < data.faces.length; j++) {
-				if (data.faces[j].point1.id == newPoints[i].id) {
-					data.faces[j].point1 = newPoints[i];
-				} else if (data.faces[j].point2.id == newPoints[i].id) {
-					data.faces[j].point2 = newPoints[i];
-				} else if (data.faces[j].point3.id == newPoints[i].id) {
-					data.faces[j].point3 = newPoints[i];
-				}
-			}
-		}
 		data.points = newPoints;
 
 		var newLines = [];
@@ -1029,22 +1085,6 @@ function moveSelected(offsetX, offsetY) {
 						data.points[i].selected
 					)
 				);
-				for (var j = 0; j < data.lines.length; j++) {
-					if (data.lines[j].point1.id == newPoints[i].id) {
-						data.lines[j].point1 = newPoints[i];
-					} else if (data.lines[j].point2.id == newPoints[i].id) {
-						data.lines[j].point2 = newPoints[i];
-					}
-				}
-				for (var j = 0; j < data.faces.length; j++) {
-					if (data.faces[j].point1.id == newPoints[i].id) {
-						data.faces[j].point1 = newPoints[i];
-					} else if (data.faces[j].point2.id == newPoints[i].id) {
-						data.faces[j].point2 = newPoints[i];
-					} else if (data.faces[j].point3.id == newPoints[i].id) {
-						data.faces[j].point3 = newPoints[i];
-					}
-				}
 			} else {
 				newPoints.push(data.points[i]);
 			}
@@ -1084,36 +1124,36 @@ function addSelectedFaces() {
 			for (var j = i + 1; j < selectedLines.length - 1; j++) {
 				for (var k = j + 1; k < selectedLines.length; k++) {
 					if (
-						(selectedLines[i].point1.id == selectedLines[j].point1.id &&
-							selectedLines[i].point2.id == selectedLines[k].point1.id &&
-							selectedLines[j].point2.id == selectedLines[k].point2.id) ||
-						(selectedLines[i].point2.id == selectedLines[j].point1.id &&
-							selectedLines[i].point1.id == selectedLines[k].point1.id &&
-							selectedLines[j].point2.id == selectedLines[k].point2.id) ||
-						(selectedLines[i].point1.id == selectedLines[j].point2.id &&
-							selectedLines[i].point2.id == selectedLines[k].point1.id &&
-							selectedLines[j].point1.id == selectedLines[k].point2.id) ||
-						(selectedLines[i].point2.id == selectedLines[j].point2.id &&
-							selectedLines[i].point1.id == selectedLines[k].point1.id &&
-							selectedLines[j].point1.id == selectedLines[k].point2.id) ||
-						(selectedLines[i].point1.id == selectedLines[j].point1.id &&
-							selectedLines[i].point2.id == selectedLines[k].point2.id &&
-							selectedLines[j].point2.id == selectedLines[k].point1.id) ||
-						(selectedLines[i].point2.id == selectedLines[j].point1.id &&
-							selectedLines[i].point1.id == selectedLines[k].point2.id &&
-							selectedLines[j].point2.id == selectedLines[k].point1.id) ||
-						(selectedLines[i].point1.id == selectedLines[j].point2.id &&
-							selectedLines[i].point2.id == selectedLines[k].point2.id &&
-							selectedLines[j].point1.id == selectedLines[k].point1.id) ||
-						(selectedLines[i].point2.id == selectedLines[j].point2.id &&
-							selectedLines[i].point1.id == selectedLines[k].point2.id &&
-							selectedLines[j].point1.id == selectedLines[k].point1.id)
+						(selectedLines[i].point1ID == selectedLines[j].point1ID &&
+							selectedLines[i].point2ID == selectedLines[k].point1ID &&
+							selectedLines[j].point2ID == selectedLines[k].point2ID) ||
+						(selectedLines[i].point2ID == selectedLines[j].point1ID &&
+							selectedLines[i].point1ID == selectedLines[k].point1ID &&
+							selectedLines[j].point2ID == selectedLines[k].point2ID) ||
+						(selectedLines[i].point1ID == selectedLines[j].point2ID &&
+							selectedLines[i].point2ID == selectedLines[k].point1ID &&
+							selectedLines[j].point1ID == selectedLines[k].point2ID) ||
+						(selectedLines[i].point2ID == selectedLines[j].point2ID &&
+							selectedLines[i].point1ID == selectedLines[k].point1ID &&
+							selectedLines[j].point1ID == selectedLines[k].point2ID) ||
+						(selectedLines[i].point1ID == selectedLines[j].point1ID &&
+							selectedLines[i].point2ID == selectedLines[k].point2ID &&
+							selectedLines[j].point2ID == selectedLines[k].point1ID) ||
+						(selectedLines[i].point2ID == selectedLines[j].point1ID &&
+							selectedLines[i].point1ID == selectedLines[k].point2ID &&
+							selectedLines[j].point2ID == selectedLines[k].point1ID) ||
+						(selectedLines[i].point1ID == selectedLines[j].point2ID &&
+							selectedLines[i].point2ID == selectedLines[k].point2ID &&
+							selectedLines[j].point1ID == selectedLines[k].point1ID) ||
+						(selectedLines[i].point2ID == selectedLines[j].point2ID &&
+							selectedLines[i].point1ID == selectedLines[k].point2ID &&
+							selectedLines[j].point1ID == selectedLines[k].point1ID)
 					) {
-						var p1 = selectedLines[i].point1;
-						var p2 = selectedLines[i].point2;
-						var p3 = selectedLines[j].point1;
+						var p1 = selectedLines[i].point1ID;
+						var p2 = selectedLines[i].point2ID;
+						var p3 = selectedLines[j].point1ID;
 						if (p3 == p1 || p3 == p2) {
-							p3 = selectedLines[j].point2;
+							p3 = selectedLines[j].point2ID;
 						}
 						var id = `f${new Date().getTime()}-${(idAccumulator++)
 							.toString()
@@ -1187,20 +1227,58 @@ function getSelectedFaces() {
 	return selectedFaces;
 }
 
-function lineExists(point1, point2) {
+function lineExists(point1ID, point2ID) {
 	var output = false;
 	for (var i = 0; i < undoHistory[undoHistoryIndex].lines.length; i++) {
 		if (
-			(undoHistory[undoHistoryIndex].lines[i].point1.id == point1.id &&
-				undoHistory[undoHistoryIndex].lines[i].point2.id == point2.id) ||
-			(undoHistory[undoHistoryIndex].lines[i].point1.id == point2.id &&
-				undoHistory[undoHistoryIndex].lines[i].point2.id == point1.id)
+			(undoHistory[undoHistoryIndex].lines[i].point1ID == point1ID &&
+				undoHistory[undoHistoryIndex].lines[i].point2ID == point2ID) ||
+			(undoHistory[undoHistoryIndex].lines[i].point1ID == point2ID &&
+				undoHistory[undoHistoryIndex].lines[i].point2ID == point1ID)
 		) {
 			output = true;
 			break;
 		}
 	}
 	return output;
+}
+
+function faceExists(point1ID, point2ID, point3ID) {
+	var output = false;
+	for (var i = 0; i < undoHistory[undoHistoryIndex].faces.length; i++) {
+		if (
+			(undoHistory[undoHistoryIndex].lines[i].point1ID == point1ID &&
+				undoHistory[undoHistoryIndex].lines[i].point2ID == point2ID &&
+				undoHistory[undoHistoryIndex].lines[i].point3ID == point3ID) ||
+			(undoHistory[undoHistoryIndex].lines[i].point1ID == point1ID &&
+				undoHistory[undoHistoryIndex].lines[i].point2ID == point3ID &&
+				undoHistory[undoHistoryIndex].lines[i].point3ID == point2ID) ||
+			(undoHistory[undoHistoryIndex].lines[i].point1ID == point2ID &&
+				undoHistory[undoHistoryIndex].lines[i].point2ID == point1ID &&
+				undoHistory[undoHistoryIndex].lines[i].point3ID == point3ID) ||
+			(undoHistory[undoHistoryIndex].lines[i].point1ID == point2ID &&
+				undoHistory[undoHistoryIndex].lines[i].point2ID == point3ID &&
+				undoHistory[undoHistoryIndex].lines[i].point3ID == point1ID) ||
+			(undoHistory[undoHistoryIndex].lines[i].point1ID == point3ID &&
+				undoHistory[undoHistoryIndex].lines[i].point2ID == point1ID &&
+				undoHistory[undoHistoryIndex].lines[i].point3ID == point2ID) ||
+			(undoHistory[undoHistoryIndex].lines[i].point1ID == point3ID &&
+				undoHistory[undoHistoryIndex].lines[i].point2ID == point2ID &&
+				undoHistory[undoHistoryIndex].lines[i].point3ID == point1ID)
+		) {
+			output = true;
+			break;
+		}
+	}
+	return output;
+}
+
+function deselectAll() {
+	for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
+		if (undoHistory[undoHistoryIndex].points[i].hasSelected()) {
+			undoHistory[undoHistoryIndex].points[i].deselect();
+		}
+	}
 }
 
 function delaunayLines(pointArray) {
@@ -1217,8 +1295,8 @@ function delaunayLines(pointArray) {
 		if (j < i) continue;
 		var ti = triangles[i];
 		var tj = triangles[j];
-		var point1 = null;
-		var point2 = null;
+		var point1ID = null;
+		var point2ID = null;
 		for (var j = 0; j < pointArray.length; j++) {
 			if (
 				(points[ti * 2] == pointValueArray[2 * j] &&
@@ -1226,7 +1304,7 @@ function delaunayLines(pointArray) {
 				(points[ti * 2] == pointValueArray[2 * j + 1] &&
 					points[ti * 2 + 1] == pointValueArray[2 * j])
 			) {
-				point1 = pointArray[j];
+				point1ID = pointArray[j].id;
 			}
 			if (
 				(points[tj * 2] == pointValueArray[2 * j] &&
@@ -1234,19 +1312,19 @@ function delaunayLines(pointArray) {
 				(points[tj * 2] == pointValueArray[2 * j + 1] &&
 					points[tj * 2 + 1] == pointValueArray[2 * j])
 			) {
-				point2 = pointArray[j];
+				point2ID = pointArray[j].id;
 			}
 		}
-		if (point1 && point2 && !lineExists(point1, point2)) {
+		if (point1ID && point2ID && !lineExists(point1ID, point2ID)) {
 			var id = `l${new Date().getTime()}-${(idAccumulator++)
 				.toString()
 				.padStart(8, "0")}`;
-			lineArray.push(new Line(id, point1, point2));
+			lineArray.push(new Line(id, point1ID, point2ID));
 		}
 	}
 	for (let i = -1; i < hull.length; ++i) {
-		var point1 = null;
-		var point2 = null;
+		var point1ID = null;
+		var point2ID = null;
 		var point1index;
 		if (i == 0) {
 			point1index = hull[hull.length - 1];
@@ -1261,7 +1339,7 @@ function delaunayLines(pointArray) {
 				(points[point1index * 2] == pointValueArray[2 * j + 1] &&
 					points[point1index * 2 + 1] == pointValueArray[2 * j])
 			) {
-				point1 = pointArray[j];
+				point1ID = pointArray[j].id;
 			}
 			if (
 				(points[point2index * 2] == pointValueArray[2 * j] &&
@@ -1269,14 +1347,14 @@ function delaunayLines(pointArray) {
 				(points[point2index * 2] == pointValueArray[2 * j + 1] &&
 					points[point2index * 2 + 1] == pointValueArray[2 * j])
 			) {
-				point2 = pointArray[j];
+				point2ID = pointArray[j].id;
 			}
 		}
-		if (point1 && point2 && !lineExists(point1, point2)) {
+		if (point1ID && point2ID && !lineExists(point1ID, point2ID)) {
 			var id = `l${new Date().getTime()}-${(idAccumulator++)
 				.toString()
 				.padStart(8, "0")}`;
-			lineArray.push(new Line(id, point1, point2));
+			lineArray.push(new Line(id, point1ID, point2ID));
 		}
 	}
 
@@ -1383,45 +1461,34 @@ function draw() {
 		d3
 			.drag()
 			.filter(function() {
-				return (
-					!d3.event.ctrlKey && !d3.event.button //&&
-					//(editType == 1)
-				);
+				return !d3.event.ctrlKey && !d3.event.button;
 			})
 			.on("start", dragPointStart)
 			.on("drag", dragPoint)
 			.on("end", dragPointEnd)
 	);
-	/*
+
 	d3.selectAll(".svg-lines").call(
 		d3
 			.drag()
 			.filter(function() {
-				return (
-					!d3.event.ctrlKey &&
-					!d3.event.button &&
-					(editType == 1 || editType == 2)
-				);
+				return !d3.event.ctrlKey && !d3.event.button;
 			})
 			.on("start", dragLineStart)
 			.on("drag", dragLine)
 			.on("end", dragLineEnd)
 	);
 
-	/*d3.selectAll(".svg-faces").call(
+	d3.selectAll(".svg-faces").call(
 		d3
 			.drag()
 			.filter(function() {
-				return (
-					!d3.event.ctrlKey &&
-					!d3.event.button &&
-					(editType == 1 || editType == 2)
-				);
+				return !d3.event.ctrlKey && !d3.event.button;
 			})
 			.on("start", dragFaceStart)
 			.on("drag", dragFace)
 			.on("end", dragFaceEnd)
-	);*/
+	);
 
 	btnUndo.classed("btn-extra", undoHistoryIndex != 0 ? false : true);
 	btnRedo.classed(
@@ -1485,6 +1552,8 @@ $(document).ready(function() {
 
 	btnUndo.on("click", btnUndoPress);
 	btnRedo.on("click", btnRedoPress);
+
+	btnMiniDisplay.on("click", btnMiniDisplayPress);
 
 	$("#backgroundImageLoader").on("change", uploadBackground);
 

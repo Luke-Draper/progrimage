@@ -1,4 +1,5 @@
 @import "~bootstrap/scss/bootstrap";
+@import "./style-css.css";
 
 $border-color: #343a40;
 $border-width: 2px;
@@ -26,12 +27,7 @@ body {
 
 .main-pos,
 .sub-1-pos,
-.sub-2-pos,
-.sub-3-pos,
-.sub-4-pos,
-.sub-5-pos,
-.sub-6-pos,
-.sub-7-pos {
+.sub-2-pos {
 	position: absolute;
 	left: $border-width;
 	width: calc(100% - #{$border-width-2});
@@ -44,30 +40,12 @@ body {
 }
 
 .sub-1-pos {
-	height: calc(#{$third} - #{$border-width-2});
 	top: $border-width;
 }
 
 .sub-2-pos {
-	height: calc(#{$third} - #{$border-width-2});
-	top: calc(#{$third} + #{$border-width});
-}
-
-.sub-3-pos {
-	height: calc(#{$third} - #{$border-width-2});
-	top: calc(#{$two-third} + #{$border-width});
-}
-
-.sub-4-pos,
-.sub-5-pos,
-.sub-6-pos,
-.sub-7-pos {
 	height: calc(100% - #{$border-width-2});
-	top: $border-width;
-}
-
-#content-container {
-	width: calc(min(100vw, 100vh) - 50px);
+	top: #{$border-width};
 }
 
 #main-svg {
@@ -93,20 +71,18 @@ body {
 
 #left-right-cover {
 	position: relative;
-	outline-color: #343a40;
+	left: 0;
+	top: calc(-100vh + 60px);
+	z-index: 50;
 	box-sizing: content-box;
 	pointer-events: none;
-	outline-style: solid;
 	background-color: transparent;
+	outline-style: solid;
+	outline-color: #343a40;
 	outline-width: 100vw;
+	margin-bottom: calc(-1 * calc(max(100vw, 100vh) - 50px));
 	margin-right: -15px;
 	margin-left: -15px;
-	left: 0;
-	top: 0px;
-	z-index: 50;
-	width: calc(min(100vw, 100vh) - 50px);
-	height: calc(min(100vw, 100vh) - 50px);
-	margin-bottom: calc(-1 * calc(min(100vw, 100vh) - 50px));
 }
 
 #bottom-cover {
@@ -130,11 +106,9 @@ body {
 
 #overflow-disabler {
 	position: absolute;
-	width: 100vw;
-	height: 100vh;
+	overflow: hidden;
 	left: 0;
 	top: 0;
-	overflow: hidden;
 }
 
 #overflow-disabler-bottom-left {
@@ -154,4 +128,33 @@ body {
 body {
 	position: relative;
 	margin: 0px;
+}
+
+#mini-display {
+	position: absolute;
+	top: 0;
+	left: 0;
+	margin: 0;
+	padding: 0;
+	width: 20%;
+	height: 20%;
+}
+
+#mini-display-toggle {
+	position: absolute;
+	width: 32px;
+	height: 32px;
+	left: 19.7%; // 0 when disabled, 19.7% when active
+	top: 0;
+}
+
+#btn-mini-display-toggle {
+	width: 32px;
+	height: 32px;
+	border-radius: 0;
+	border-bottom-right-radius: 6px;
+}
+
+#btn-mini-display-toggle-open {
+	display: none;
 }

@@ -197,38 +197,7 @@
 			</nav>
 
 			<div class="container-lg" id="content-container">
-				<div id="left-right-cover"></div>
 				<div class="row">
-					<div class="col-3" id="left-sidebar">
-						<div class="row">
-							<img
-								class="square-placeholder"
-								src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
-							/>
-							<div class="square-border"></div>
-							<canvas class="sub-canvas sub-1-pos" id="sub-1-canvas"></canvas>
-							<svg
-								viewBox="0 0 1 1"
-								xmlns="http://www.w3.org/2000/svg"
-								class="sub-1-pos"
-								id="sub-1-svg"
-							></svg>
-						</div>
-						<div class="row">
-							<img
-								class="square-placeholder"
-								src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
-							/>
-							<canvas class="sub-canvas sub-2-pos" id="sub-2-canvas"></canvas>
-						</div>
-						<div class="row">
-							<img
-								class="square-placeholder"
-								src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
-							/>
-							<canvas class="sub-canvas sub-3-pos" id="sub-3-canvas"></canvas>
-						</div>
-					</div>
 					<div class="col-9">
 						<div class="row">
 							<img
@@ -245,46 +214,51 @@
 								id="main-svg"
 							></svg>
 							<div id="main-border"></div>
+							<div id="mini-display">
+								<img
+									class="square-placeholder"
+									src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
+								/>
+								<div class="square-border"></div>
+								<canvas class="sub-canvas sub-1-pos" id="sub-1-canvas"></canvas>
+								<svg
+									viewBox="0 0 1 1"
+									xmlns="http://www.w3.org/2000/svg"
+									class="sub-1-pos"
+									id="sub-1-svg"
+								></svg>
+							</div>
+							<div id="mini-display-toggle">
+								<button
+									type="button"
+									class="btn btn-sm btn-dark"
+									id="btn-mini-display-toggle"
+									title="Mini Toggle"
+								>
+									<ion-icon
+										name="chevron-forward-outline"
+										id="btn-mini-display-toggle-open"
+									></ion-icon>
+									<ion-icon
+										name="chevron-back-outline"
+										id="btn-mini-display-toggle-close"
+									></ion-icon>
+								</button>
+							</div>
+						</div>
+					</div>
+					<div class="col-3" id="left-sidebar">
+						<div class="row">
+							<img
+								class="square-placeholder"
+								src="https://via.placeholder.com/100x300/FFFFFF/FFFFFF"
+							/>
+							<div class="square-border"></div>
+							<canvas class="sub-canvas sub-2-pos" id="sub-2-canvas"></canvas>
 						</div>
 					</div>
 				</div>
-				<div class="row">
-					<div class="col-3">
-						<img
-							class="square-placeholder"
-							src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
-						/>
-						<div class="square-border"></div>
-						<canvas class="sub-canvas sub-4-pos" id="sub-4-canvas"></canvas>
-					</div>
-					<div class="col-3">
-						<img
-							class="square-placeholder"
-							src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
-						/>
-						<div class="square-border"></div>
-						<canvas class="sub-canvas sub-5-pos" id="sub-5-canvas"></canvas>
-					</div>
-					<div class="col-3">
-						<img
-							class="square-placeholder"
-							src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
-						/>
-						<div class="square-border"></div>
-						<canvas class="sub-canvas sub-6-pos" id="sub-6-canvas"></canvas>
-					</div>
-					<div class="col-3">
-						<img
-							class="square-placeholder"
-							src="https://via.placeholder.com/100/FFFFFF/FFFFFF"
-						/>
-						<div class="square-border"></div>
-						<canvas class="sub-canvas sub-7-pos" id="sub-7-canvas"></canvas>
-					</div>
-				</div>
-				<div class="row">
-					<div class="square-border" id="bottom-cover"></div>
-				</div>
+				<div id="left-right-cover"></div>
 			</div>
 		</div>
 
