@@ -2,6 +2,7 @@
 @import "./style-css.css";
 
 $border-color: #343a40;
+$active-color: rgba(220, 220, 220, 1);
 $border-width: 2px;
 $border-width-2: 2 * $border-width;
 $third: 100% / 3;
@@ -26,8 +27,8 @@ body {
 }
 
 .main-pos,
-.sub-1-pos,
-.sub-2-pos {
+.mini-display-pos,
+.tab-sidebar-pos {
 	position: absolute;
 	left: $border-width;
 	width: calc(100% - #{$border-width-2});
@@ -39,11 +40,11 @@ body {
 	top: $border-width;
 }
 
-.sub-1-pos {
+.mini-display-pos {
 	top: $border-width;
 }
 
-.sub-2-pos {
+.tab-sidebar-pos {
 	height: calc(100% - #{$border-width-2});
 	top: #{$border-width};
 }
@@ -66,7 +67,7 @@ body {
 }
 
 .btn-extra {
-	background-color: rgba(220, 220, 220, 1);
+	background-color: $active-color;
 }
 
 #left-right-cover {
@@ -157,4 +158,76 @@ body {
 
 #btn-mini-display-toggle-open {
 	display: none;
+}
+
+.btn-group {
+	margin: 0 !important;
+}
+
+.tab-container {
+	position: absolute;
+	width: calc(100% - 4px);
+	top: 2px;
+	left: 2px;
+}
+
+.tab-pane {
+	width: 170px;
+	margin: auto;
+}
+
+#point-radius-number {
+	width: 30%;
+}
+
+.color-picker-number-label,
+.color-picker-number {
+	display: flex;
+	justify-content: space-around;
+	margin-top: 4px;
+}
+
+.color-picker {
+	margin-top: 10px;
+}
+
+.color-picker-number-input {
+	font-size: 0.75em;
+	width: 20%;
+}
+
+.tab-content {
+	position: absolute;
+	z-index: 1;
+	width: 100%;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+#nav-top div {
+	max-width: 840px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.nav-tabs .nav-link,
+.nav-tabs {
+	color: #212529;
+	border: none;
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+	border-bottom-left-radius: 0.25rem;
+	border-bottom-right-radius: 0.25rem;
+}
+
+.nav-tabs {
+	justify-content: space-around;
+}
+
+.nav-link {
+	padding: 0.4rem 0.7rem;
+}
+
+.nav-tabs .nav-link.active {
+	background-color: $active-color;
 }

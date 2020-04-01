@@ -19,6 +19,8 @@ import iro from "@jaames/iro";
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
 const btnEditType = d3.select("#btn-edit-type");
 const iconEditTypeView = d3.select("#icon-edit-type-view");
 const iconEditTypeAll = d3.select("#icon-edit-type-all");
@@ -46,13 +48,11 @@ const btnLinesVis = d3.select("#btn-lines-vis");
 const btnFacesVis = d3.select("#btn-faces-vis");
 
 const mainSVG = d3.select("#main-svg");
-const sub1SVG = d3.select("#sub-1-svg");
+const miniDisplaySVG = d3.select("#mini-display-svg");
 
-const mainCanvas = d3.select("#main-canvas");
-const sub1Canvas = d3.select("#sub-1-canvas");
-const sub2Canvas = d3.select("#sub-2-canvas");
+const tabSidebarBackground = d3.select("#tab-sidebar-background");
 
-const backgroundCanvas = d3.select("#background-canvas");
+const backgroundCanvas = d3.select("#main-background");
 const backForm = d3.select("#backgroundImageLoader");
 
 const miniDisplay = d3.select("#mini-display");
@@ -60,6 +60,44 @@ const miniDisplayToggle = d3.select("#mini-display-toggle");
 const btnMiniDisplay = d3.select("#btn-mini-display-toggle");
 const btnMiniDisplayOpenIcon = d3.select("#btn-mini-display-toggle-open");
 const btnMiniDisplayCloseIcon = d3.select("#btn-mini-display-toggle-close");
+
+const btnTabs = [
+	d3.select("#point-tab"),
+	d3.select("#line-tab"),
+	d3.select("#face-tab"),
+	d3.select("#layer-tab"),
+	d3.select("#background-tab")
+];
+
+const btnTabContents = [
+	d3.select("#point-tab-content"),
+	d3.select("#line-tab-content"),
+	d3.select("#face-tab-content"),
+	d3.select("#layer-tab-content"),
+	d3.select("#background-tab-content")
+];
+
+const pointRadiusNumber = d3.select("#point-radius-number");
+const lineWidthNumber = d3.select("#line-width-number");
+
+const pointHueNumber = d3.select("#point-hue-number");
+const pointSaturationNumber = d3.select("#point-saturation-number");
+const pointValueNumber = d3.select("#point-value-number");
+const pointAlphaNumber = d3.select("#point-alpha-number");
+
+const lineHueNumber = d3.select("#line-hue-number");
+const lineSaturationNumber = d3.select("#line-saturation-number");
+const lineValueNumber = d3.select("#line-value-number");
+const lineAlphaNumber = d3.select("#line-alpha-number");
+
+const faceHueNumber = d3.select("#face-hue-number");
+const faceSaturationNumber = d3.select("#face-saturation-number");
+const faceValueNumber = d3.select("#face-value-number");
+const faceAlphaNumber = d3.select("#face-alpha-number");
+
+const btnPointApply = d3.select("#btn-point-apply");
+const btnLineApply = d3.select("#btn-line-apply");
+const btnFaceApply = d3.select("#btn-face-apply");
 
 const zoomFactor = 1.25;
 
@@ -72,6 +110,8 @@ const zoomFactor = 1.25;
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++[|       Variables        |]++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -107,6 +147,17 @@ var miniDisplayVisible = true;
 var mouseClientCoords = { x: 0, y: 0 };
 var mouseOffsetCoords = { x: 0, y: 0 };
 
+var pointColorPicker;
+var lineColorPicker;
+var faceColorPicker;
+
+var pointColorEdited = false;
+var lineColorEdited = false;
+var faceColorEdited = false;
+
+var pointOtherEdited = false;
+var lineOtherEdited = false;
+
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
@@ -116,6 +167,8 @@ var mouseOffsetCoords = { x: 0, y: 0 };
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++[|       Classes          |]++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -225,7 +278,7 @@ class Point extends SVGCanvasElement {
 		if (this.isSelected()) {
 			var stroke = this.radius / 5;
 			var dash = stroke / 3;
-			selectAttributes = ` stroke="#ff873d" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="0.00001,${dash}"`;
+			selectAttributes = ` stroke="#ff873d" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="0.00001,${stroke}"`;
 		} else {
 			selectAttributes = ' stroke="rgba" stroke-width="0"';
 		}
@@ -258,14 +311,12 @@ class Line extends SVGCanvasElement {
 		point2ID,
 		strokeWidth = 0.005,
 		color = "rgba(0,255,0,1)",
-		lineCap = "round",
 		layer = currentLayer
 	) {
 		super(id, color, layer);
 		this.point1ID = point1ID;
 		this.point2ID = point2ID;
 		this.strokeWidth = strokeWidth;
-		this.lineCap = lineCap;
 	}
 
 	isSelected() {
@@ -299,7 +350,7 @@ class Line extends SVGCanvasElement {
 		if (!visibleLines) {
 			return "";
 		}
-		var selectAttributes = `stroke="${this.color}" stroke-linecap="${this.lineCap}"`;
+		var selectAttributes = `stroke="${this.color}" stroke-linecap="round"`;
 		if (this.isSelected()) {
 			var dash = this.strokeWidth / 3;
 			selectAttributes = ` stroke="#ff873d" stroke-linecap="round" stroke-dasharray="0.00001,${dash}"`;
@@ -343,7 +394,7 @@ class Line extends SVGCanvasElement {
 			getByID(this.point2ID).y
 		}"  stroke-width="${this.strokeWidth}" stroke="${
 			this.color
-		}" stroke-linecap="${lineCap}"/>`;
+		}" stroke-linecap="round"/>`;
 	}
 }
 
@@ -418,7 +469,7 @@ class Face extends SVGCanvasElement {
 				3;
 			selectAttributes = `<circle id="${this.id}-selected" cx="${avgX}" cy="${avgY}" r="0.05" fill="rgba(255,135,61,0.4)"/>`;
 		}
-		return `<polygon id="${this.id}" points="${getByID(
+		return `<polygon id="${this.id}" class="svg-faces" points="${getByID(
 			this.point1ID
 		).svgFormat()} ${getByID(this.point2ID).svgFormat()} ${getByID(
 			this.point3ID
@@ -488,6 +539,8 @@ class Face extends SVGCanvasElement {
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++[|    Button Callbacks    |]++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -580,6 +633,21 @@ var btnMiniDisplayPress = function() {
 	}
 };
 
+var btnTabPress = function() {
+	var btn = d3.select(this);
+	btnTabs.forEach(function(btnOff) {
+		btnOff.attr("aria-selected", "false");
+		btnOff.classed("active", false);
+	});
+	btn.attr("aria-selected", "true");
+	btn.classed("active", true);
+
+	btnTabContents.forEach(function(btnContent) {
+		btnContent.classed("active", false);
+	});
+	d3.select(`#${btn.attr("aria-controls")}`).classed("active", true);
+};
+
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
@@ -596,12 +664,14 @@ var btnMiniDisplayPress = function() {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
 var zoomStart = function() {
 	mainSVG.attr("cursor", "grabbing");
 };
 var zooming = function() {
 	mainSVG.mainGroup.attr("transform", d3.event.transform);
-	sub1SVG.viewGroup.attr(
+	miniDisplaySVG.viewGroup.attr(
 		"transform",
 		"translate(" +
 			-d3.event.transform.x / d3.event.transform.k +
@@ -678,6 +748,16 @@ var dragPointEnd = function() {
 var dragLineStart = function() {
 	d3.selectAll(".svg-lines").attr("cursor", "grabbing");
 	var line = getByID(d3.select(this).attr("id"));
+	if (
+		!(
+			d3.event.shiftKey ||
+			(d3.event.sourceEvent && d3.event.sourceEvent.shiftKey)
+		)
+	) {
+		deselectAll();
+	}
+	line.select();
+	draw();
 	dragPointStart.call(d3.select(`#${line.point1ID}`).node());
 };
 var dragLine = function() {
@@ -707,6 +787,16 @@ var dragLineEnd = function() {
 var dragFaceStart = function() {
 	d3.selectAll(".svg-faces").attr("cursor", "grabbing");
 	var face = getByID(d3.select(this).attr("id"));
+	if (
+		!(
+			d3.event.shiftKey ||
+			(d3.event.sourceEvent && d3.event.sourceEvent.shiftKey)
+		)
+	) {
+		deselectAll();
+	}
+	face.select();
+	draw();
 	dragPointStart.call(d3.select(`#${face.point1ID}`).node());
 };
 var dragFace = function() {
@@ -763,54 +853,401 @@ var boxSelecting = function() {
 
 var boxSelectEnd = function() {
 	if (boxSelectOngoing) {
-		boxSelectStarted = false;
-		boxSelectOngoing = false;
-		mainSVG.selectRect
-			.attr("x", -100)
-			.attr("y", -100)
-			.attr("width", 0)
-			.attr("height", 0);
 		var current = screenCoordsToSVG(d3.event.offsetX, d3.event.offsetY);
-		var maxX = Math.max(initial.x, current.x);
-		var minX = Math.min(initial.x, current.x);
-		var maxY = Math.max(initial.y, current.y);
-		var minY = Math.min(initial.y, current.y);
-
 		if (
-			!(
-				d3.event.shiftKey ||
-				(d3.event.sourceEvent && d3.event.sourceEvent.shiftKey)
-			)
+			(initial.x - current.x) * (initial.x - current.x) +
+				(initial.y - current.y) * (initial.y - current.y) <
+			0.00001
 		) {
-			deselectAll();
-		}
-		for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
+			addPoint();
+		} else {
+			boxSelectStarted = false;
+			boxSelectOngoing = false;
+			mainSVG.selectRect
+				.attr("x", -100)
+				.attr("y", -100)
+				.attr("width", 0)
+				.attr("height", 0);
+			var maxX = Math.max(initial.x, current.x);
+			var minX = Math.min(initial.x, current.x);
+			var maxY = Math.max(initial.y, current.y);
+			var minY = Math.min(initial.y, current.y);
+
 			if (
-				undoHistory[undoHistoryIndex].points[i].x < maxX &&
-				undoHistory[undoHistoryIndex].points[i].x > minX &&
-				undoHistory[undoHistoryIndex].points[i].y < maxY &&
-				undoHistory[undoHistoryIndex].points[i].y > minY
+				!(
+					d3.event.shiftKey ||
+					(d3.event.sourceEvent && d3.event.sourceEvent.shiftKey)
+				)
 			) {
-				undoHistory[undoHistoryIndex].points[i].select();
+				deselectAll();
 			}
+			for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
+				if (
+					undoHistory[undoHistoryIndex].points[i].x < maxX &&
+					undoHistory[undoHistoryIndex].points[i].x > minX &&
+					undoHistory[undoHistoryIndex].points[i].y < maxY &&
+					undoHistory[undoHistoryIndex].points[i].y > minY
+				) {
+					undoHistory[undoHistoryIndex].points[i].select();
+				}
+			}
+			draw();
 		}
-		draw();
 	}
 };
 
-var mouseDownAll = function() {
-	keydown = "~";
-	downCoord.x = d3.event.x;
-	downCoord.y = d3.event.y;
-};
-var mouseUpAll = function() {
-	keydown = "~";
-	if (
-		Math.abs(d3.event.x - downCoord.x) < threshold &&
-		Math.abs(d3.event.y - downCoord.y) < threshold
-	) {
-		addPoint();
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
+/*     --==++==--     --==++[|     Color Callbacks    |]++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
+function btnPointApplyUpdate() {
+	if (pointColorEdited || pointOtherEdited) {
+		btnPointApply.attr("disabled", null);
+		btnPointApply.classed("disabled", false);
+	} else {
+		btnPointApply.attr("disabled", true);
+		btnPointApply.classed("disabled", true);
 	}
+}
+
+var btnPointApplyPress = function() {
+	applyToSelectedPoints(
+		pointColorPicker.color.rgbaString,
+		parseFloat(pointRadiusNumber.property("value"))
+	);
+	pointColorEdited = false;
+	pointOtherEdited = false;
+	btnPointApplyUpdate();
+};
+
+var pointOtherChange = function() {
+	pointOtherEdited = true;
+	btnPointApplyUpdate();
+};
+
+var pointColorChange = function(color) {
+	pointColorEdited = true;
+	pointHueNumber.property("value", color.hsva.h);
+	pointSaturationNumber.property("value", color.hsva.s);
+	pointValueNumber.property("value", color.hsva.v);
+	pointAlphaNumber.property("value", color.hsva.a);
+	btnPointApplyUpdate();
+};
+
+var pointNumberChange = function() {
+	pointColorEdited = true;
+	if (
+		parseFloat(pointHueNumber.property("value")) >
+		parseFloat(pointHueNumber.attr("max"))
+	) {
+		parseFloat(
+			pointHueNumber.property("value", parseFloat(pointHueNumber.attr("max")))
+		);
+	} else if (
+		parseFloat(pointHueNumber.property("value")) <
+		parseFloat(pointHueNumber.attr("min"))
+	) {
+		parseFloat(
+			pointHueNumber.property("value", parseFloat(pointHueNumber.attr("min")))
+		);
+	}
+	if (
+		parseFloat(pointSaturationNumber.property("value")) >
+		parseFloat(pointSaturationNumber.attr("max"))
+	) {
+		parseFloat(
+			pointSaturationNumber.property(
+				"value",
+				parseFloat(pointSaturationNumber.attr("max"))
+			)
+		);
+	} else if (
+		parseFloat(pointSaturationNumber.property("value")) <
+		parseFloat(pointSaturationNumber.attr("min"))
+	) {
+		parseFloat(
+			pointSaturationNumber.property(
+				"value",
+				parseFloat(pointSaturationNumber.attr("min"))
+			)
+		);
+	}
+	if (
+		parseFloat(pointValueNumber.property("value")) >
+		parseFloat(pointValueNumber.attr("max"))
+	) {
+		parseFloat(
+			pointValueNumber.property(
+				"value",
+				parseFloat(pointValueNumber.attr("max"))
+			)
+		);
+	} else if (
+		parseFloat(pointValueNumber.property("value")) <
+		parseFloat(pointValueNumber.attr("min"))
+	) {
+		parseFloat(
+			pointValueNumber.property(
+				"value",
+				parseFloat(pointValueNumber.attr("min"))
+			)
+		);
+	}
+	if (
+		parseFloat(pointAlphaNumber.property("value")) >
+		parseFloat(pointAlphaNumber.attr("max"))
+	) {
+		parseFloat(
+			pointAlphaNumber.property(
+				"value",
+				parseFloat(pointAlphaNumber.attr("max"))
+			)
+		);
+	} else if (
+		parseFloat(pointAlphaNumber.property("value")) <
+		parseFloat(pointAlphaNumber.attr("min"))
+	) {
+		parseFloat(
+			pointAlphaNumber.property(
+				"value",
+				parseFloat(pointAlphaNumber.attr("min"))
+			)
+		);
+	}
+	pointColorPicker.color.hsva = {
+		h: pointHueNumber.property("value"),
+		s: pointSaturationNumber.property("value"),
+		v: pointValueNumber.property("value"),
+		a: pointAlphaNumber.property("value")
+	};
+	btnPointApplyUpdate();
+};
+
+function btnLineApplyUpdate() {
+	if (lineColorEdited || lineOtherEdited) {
+		btnLineApply.attr("disabled", null);
+		btnLineApply.classed("disabled", false);
+	} else {
+		btnLineApply.attr("disabled", true);
+		btnLineApply.classed("disabled", true);
+	}
+}
+
+var btnLineApplyPress = function() {
+	applyToSelectedLines(
+		lineColorPicker.color.rgbaString,
+		parseFloat(lineWidthNumber.property("value"))
+	);
+	lineColorEdited = false;
+	lineOtherEdited = false;
+	btnLineApplyUpdate();
+};
+
+var lineOtherChange = function() {
+	lineOtherEdited = true;
+	btnLineApplyUpdate();
+};
+
+var lineColorChange = function(color) {
+	lineColorEdited = true;
+	lineHueNumber.property("value", color.hsva.h);
+	lineSaturationNumber.property("value", color.hsva.s);
+	lineValueNumber.property("value", color.hsva.v);
+	lineAlphaNumber.property("value", color.hsva.a);
+	btnLineApplyUpdate();
+};
+
+var lineNumberChange = function() {
+	lineColorEdited = true;
+	if (
+		parseFloat(lineHueNumber.property("value")) >
+		parseFloat(lineHueNumber.attr("max"))
+	) {
+		parseFloat(
+			lineHueNumber.property("value", parseFloat(lineHueNumber.attr("max")))
+		);
+	} else if (
+		parseFloat(lineHueNumber.property("value")) <
+		parseFloat(lineHueNumber.attr("min"))
+	) {
+		parseFloat(
+			lineHueNumber.property("value", parseFloat(lineHueNumber.attr("min")))
+		);
+	}
+	if (
+		parseFloat(lineSaturationNumber.property("value")) >
+		parseFloat(lineSaturationNumber.attr("max"))
+	) {
+		parseFloat(
+			lineSaturationNumber.property(
+				"value",
+				parseFloat(lineSaturationNumber.attr("max"))
+			)
+		);
+	} else if (
+		parseFloat(lineSaturationNumber.property("value")) <
+		parseFloat(lineSaturationNumber.attr("min"))
+	) {
+		parseFloat(
+			lineSaturationNumber.property(
+				"value",
+				parseFloat(lineSaturationNumber.attr("min"))
+			)
+		);
+	}
+	if (
+		parseFloat(lineValueNumber.property("value")) >
+		parseFloat(lineValueNumber.attr("max"))
+	) {
+		parseFloat(
+			lineValueNumber.property("value", parseFloat(lineValueNumber.attr("max")))
+		);
+	} else if (
+		parseFloat(lineValueNumber.property("value")) <
+		parseFloat(lineValueNumber.attr("min"))
+	) {
+		parseFloat(
+			lineValueNumber.property("value", parseFloat(lineValueNumber.attr("min")))
+		);
+	}
+	if (
+		parseFloat(lineAlphaNumber.property("value")) >
+		parseFloat(lineAlphaNumber.attr("max"))
+	) {
+		parseFloat(
+			lineAlphaNumber.property("value", parseFloat(lineAlphaNumber.attr("max")))
+		);
+	} else if (
+		parseFloat(lineAlphaNumber.property("value")) <
+		parseFloat(lineAlphaNumber.attr("min"))
+	) {
+		parseFloat(
+			lineAlphaNumber.property("value", parseFloat(lineAlphaNumber.attr("min")))
+		);
+	}
+	lineColorPicker.color.hsva = {
+		h: lineHueNumber.property("value"),
+		s: lineSaturationNumber.property("value"),
+		v: lineValueNumber.property("value"),
+		a: lineAlphaNumber.property("value")
+	};
+	btnLineApplyUpdate();
+};
+
+function btnFaceApplyUpdate() {
+	if (faceColorEdited) {
+		btnFaceApply.attr("disabled", null);
+		btnFaceApply.classed("disabled", false);
+	} else {
+		btnFaceApply.attr("disabled", true);
+		btnFaceApply.classed("disabled", true);
+	}
+}
+
+var btnFaceApplyPress = function() {
+	applyToSelectedFaces(faceColorPicker.color.rgbaString);
+	faceColorEdited = false;
+	btnFaceApplyUpdate();
+};
+
+var faceColorChange = function(color) {
+	faceColorEdited = true;
+	faceHueNumber.property("value", color.hsva.h);
+	faceSaturationNumber.property("value", color.hsva.s);
+	faceValueNumber.property("value", color.hsva.v);
+	faceAlphaNumber.property("value", color.hsva.a);
+	btnFaceApplyUpdate();
+};
+
+var faceNumberChange = function() {
+	faceColorEdited = true;
+	if (
+		parseFloat(faceHueNumber.property("value")) >
+		parseFloat(faceHueNumber.attr("max"))
+	) {
+		parseFloat(
+			faceHueNumber.property("value", parseFloat(faceHueNumber.attr("max")))
+		);
+	} else if (
+		parseFloat(faceHueNumber.property("value")) <
+		parseFloat(faceHueNumber.attr("min"))
+	) {
+		parseFloat(
+			faceHueNumber.property("value", parseFloat(faceHueNumber.attr("min")))
+		);
+	}
+	if (
+		parseFloat(faceSaturationNumber.property("value")) >
+		parseFloat(faceSaturationNumber.attr("max"))
+	) {
+		parseFloat(
+			faceSaturationNumber.property(
+				"value",
+				parseFloat(faceSaturationNumber.attr("max"))
+			)
+		);
+	} else if (
+		parseFloat(faceSaturationNumber.property("value")) <
+		parseFloat(faceSaturationNumber.attr("min"))
+	) {
+		parseFloat(
+			faceSaturationNumber.property(
+				"value",
+				parseFloat(faceSaturationNumber.attr("min"))
+			)
+		);
+	}
+	if (
+		parseFloat(faceValueNumber.property("value")) >
+		parseFloat(faceValueNumber.attr("max"))
+	) {
+		parseFloat(
+			faceValueNumber.property("value", parseFloat(faceValueNumber.attr("max")))
+		);
+	} else if (
+		parseFloat(faceValueNumber.property("value")) <
+		parseFloat(faceValueNumber.attr("min"))
+	) {
+		parseFloat(
+			faceValueNumber.property("value", parseFloat(faceValueNumber.attr("min")))
+		);
+	}
+	if (
+		parseFloat(faceAlphaNumber.property("value")) >
+		parseFloat(faceAlphaNumber.attr("max"))
+	) {
+		parseFloat(
+			faceAlphaNumber.property("value", parseFloat(faceAlphaNumber.attr("max")))
+		);
+	} else if (
+		parseFloat(faceAlphaNumber.property("value")) <
+		parseFloat(faceAlphaNumber.attr("min"))
+	) {
+		parseFloat(
+			faceAlphaNumber.property("value", parseFloat(faceAlphaNumber.attr("min")))
+		);
+	}
+	faceColorPicker.color.hsva = {
+		h: faceHueNumber.property("value"),
+		s: faceSaturationNumber.property("value"),
+		v: faceValueNumber.property("value"),
+		a: faceAlphaNumber.property("value")
+	};
+	btnFaceApplyUpdate();
 };
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
@@ -829,8 +1266,12 @@ var mouseUpAll = function() {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
 var downKey = function() {
-	d3.event.preventDefault();
+	if (d3.event.ctrlKey || d3.event.shiftKey || d3.event.altKey) {
+		d3.event.preventDefault();
+	}
 	keydown = d3.event.key;
 };
 
@@ -934,6 +1375,8 @@ var uploadBackground = function() {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
 function operation(fn) {
 	undoHistory = undoHistory.slice(0, undoHistoryIndex + 1);
 	var newVersion = fn(duplicateData(undoHistory[undoHistoryIndex]));
@@ -974,7 +1417,6 @@ function duplicateData(data) {
 				line.point2ID,
 				line.strokeWidth,
 				line.color,
-				line.lineCap,
 				line.layer
 			)
 		);
@@ -1082,6 +1524,7 @@ function moveSelected(offsetX, offsetY) {
 						data.points[i].y + offsetY,
 						data.points[i].radius,
 						data.points[i].color,
+						data.points[i].layer,
 						data.points[i].selected
 					)
 				);
@@ -1089,6 +1532,41 @@ function moveSelected(offsetX, offsetY) {
 				newPoints.push(data.points[i]);
 			}
 		}
+		data.points = newPoints;
+		return data;
+	});
+}
+
+function applyToSelectedPoints(color, radius) {
+	operation(function(data) {
+		var newPoints = [];
+		var newColor = color;
+		var newRadius = radius;
+		for (var i = 0; i < data.points.length; i++) {
+			if (data.points[i].isSelected()) {
+				if (!pointColorEdited) {
+					newColor = data.points[i].color;
+				}
+				if (!pointOtherEdited) {
+					newRadius = data.points[i].radius;
+				}
+				newPoints.push(
+					new Point(
+						data.points[i].id,
+						data.points[i].x,
+						data.points[i].y,
+						newRadius,
+						newColor,
+						data.points[i].layer,
+						data.points[i].selected
+					)
+				);
+			} else {
+				newPoints.push(data.points[i]);
+			}
+		}
+		pointColorChange({ hsva: { h: 0, s: 0, v: 0, a: 1 } });
+		pointNumberChange();
 		data.points = newPoints;
 		return data;
 	});
@@ -1111,6 +1589,39 @@ function removeSelectedLines() {
 				newLines.push(data.lines[i]);
 			}
 		}
+		data.lines = newLines;
+		return data;
+	});
+}
+function applyToSelectedLines(color, width) {
+	operation(function(data) {
+		var newLines = [];
+		var newColor = color;
+		var newWidth = width;
+		for (var i = 0; i < data.lines.length; i++) {
+			if (data.lines[i].isSelected()) {
+				if (!lineColorEdited) {
+					newColor = data.lines[i].color;
+				}
+				if (!lineOtherEdited) {
+					newWidth = data.lines[i].strokeWidth;
+				}
+				newLines.push(
+					new Line(
+						data.lines[i].id,
+						data.lines[i].point1ID,
+						data.lines[i].point2ID,
+						newWidth,
+						newColor,
+						data.lines[i].layer
+					)
+				);
+			} else {
+				newLines.push(data.lines[i]);
+			}
+		}
+		lineColorChange({ hsva: { h: 0, s: 0, v: 0, a: 1 } });
+		lineNumberChange();
 		data.lines = newLines;
 		return data;
 	});
@@ -1180,6 +1691,35 @@ function removeSelectedFaces() {
 		return data;
 	});
 }
+function applyToSelectedFaces(color) {
+	operation(function(data) {
+		var newFaces = [];
+		var newColor = color;
+		for (var i = 0; i < data.faces.length; i++) {
+			if (data.faces[i].isSelected()) {
+				if (!faceColorEdited) {
+					newColor = data.faces[i].color;
+				}
+				newFaces.push(
+					new Face(
+						data.faces[i].id,
+						data.faces[i].point1ID,
+						data.faces[i].point2ID,
+						data.faces[i].point3ID,
+						newColor,
+						data.faces[i].layer
+					)
+				);
+			} else {
+				newFaces.push(data.faces[i]);
+			}
+		}
+		faceColorChange({ hsva: { h: 0, s: 0, v: 0, a: 1 } });
+		faceNumberChange();
+		data.faces = newFaces;
+		return data;
+	});
+}
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -1190,6 +1730,8 @@ function removeSelectedFaces() {
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++[|       Utilities        |]++==--     --==++==--     */
+
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -1413,6 +1955,60 @@ function svgCoordsToSection(x, y) {
 	return { x: (x + 0.005) * w, y: (y + 0.005) * h };
 }
 
+function createColorPicker(id) {
+	return new iro.ColorPicker(id, {
+		layout: [
+			{
+				component: iro.ui.Box,
+				options: {
+					width: 170
+				}
+			},
+			{
+				component: iro.ui.Slider,
+				options: {
+					width: 170,
+					sliderMargin: 4,
+					padding: 4,
+					handleRadius: 4,
+					sliderType: "hue"
+				}
+			},
+			{
+				component: iro.ui.Slider,
+				options: {
+					width: 170,
+					sliderMargin: 4,
+					padding: 4,
+					handleRadius: 4,
+					sliderType: "saturation"
+				}
+			},
+			{
+				component: iro.ui.Slider,
+				options: {
+					width: 170,
+					sliderMargin: 4,
+					padding: 4,
+					handleRadius: 4,
+					sliderType: "value"
+				}
+			},
+			{
+				component: iro.ui.Slider,
+				options: {
+					width: 170,
+					sliderMargin: 4,
+					padding: 4,
+					handleRadius: 4,
+					sliderType: "alpha"
+				}
+			}
+		],
+		color: "#000"
+	});
+}
+
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
@@ -1429,6 +2025,8 @@ function svgCoordsToSection(x, y) {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
 function draw() {
 	var pointCanvasHTML = "";
 	var pointBasicHTML = "";
@@ -1437,7 +2035,7 @@ function draw() {
 		pointBasicHTML = pointBasicHTML.concat(point.svgBasic());
 	});
 	mainSVG.points.html(pointCanvasHTML);
-	sub1SVG.points.html(pointBasicHTML);
+	miniDisplaySVG.points.html(pointBasicHTML);
 
 	var lineCanvasHTML = "";
 	var lineBasicHTML = "";
@@ -1446,7 +2044,7 @@ function draw() {
 		lineBasicHTML = lineBasicHTML.concat(line.svgBasic());
 	});
 	mainSVG.lines.html(lineCanvasHTML);
-	sub1SVG.lines.html(lineBasicHTML);
+	miniDisplaySVG.lines.html(lineBasicHTML);
 
 	var faceCanvasHTML = "";
 	var faceBasicHTML = "";
@@ -1455,7 +2053,7 @@ function draw() {
 		faceBasicHTML = faceBasicHTML.concat(face.svgBasic());
 	});
 	mainSVG.faces.html(faceCanvasHTML);
-	sub1SVG.faces.html(faceBasicHTML);
+	miniDisplaySVG.faces.html(faceBasicHTML);
 
 	d3.selectAll(".svg-points").call(
 		d3
@@ -1531,6 +2129,8 @@ function renderSVGOffset(offsetX, offsetY) {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
+/*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
+
 $(document).ready(function() {
 	undoHistory.push({
 		points: [],
@@ -1557,6 +2157,10 @@ $(document).ready(function() {
 
 	$("#backgroundImageLoader").on("change", uploadBackground);
 
+	btnTabs.forEach(function(btn) {
+		btn.on("click", btnTabPress);
+	});
+
 	d3.select("body")
 		.on("keydown", downKey)
 		.on("keyup", upKey)
@@ -1566,10 +2170,42 @@ $(document).ready(function() {
 		e.preventDefault();
 	});
 
+	pointColorPicker = createColorPicker("#point-color-picker");
+	lineColorPicker = createColorPicker("#line-color-picker");
+	faceColorPicker = createColorPicker("#face-color-picker");
+
+	pointColorPicker.on("input:end", pointColorChange);
+	lineColorPicker.on("input:end", lineColorChange);
+	faceColorPicker.on("input:end", faceColorChange);
+
+	btnPointApply.on("click", btnPointApplyPress);
+	pointRadiusNumber.on("change", pointOtherChange);
+
+	pointHueNumber.on("change", pointNumberChange);
+	pointSaturationNumber.on("change", pointNumberChange);
+	pointValueNumber.on("change", pointNumberChange);
+	pointAlphaNumber.on("change", pointNumberChange);
+
+	btnLineApply.on("click", btnLineApplyPress);
+	lineWidthNumber.on("change", lineOtherChange);
+
+	lineHueNumber.on("change", lineNumberChange);
+	lineSaturationNumber.on("change", lineNumberChange);
+	lineValueNumber.on("change", lineNumberChange);
+	lineAlphaNumber.on("change", lineNumberChange);
+
+	btnFaceApply.on("click", btnFaceApplyPress);
+
+	faceHueNumber.on("change", faceNumberChange);
+	faceSaturationNumber.on("change", faceNumberChange);
+	faceValueNumber.on("change", faceNumberChange);
+	faceAlphaNumber.on("change", faceNumberChange);
+
 	mainSVG.mainGroup = mainSVG
 		.append("g")
-		.on("mousedown", mouseDownAll)
-		.on("mouseup", mouseUpAll);
+		.on("mousedown", boxSelectStart)
+		.on("mousemove", boxSelecting)
+		.on("mouseup", boxSelectEnd);
 	mainSVG.mainGroup
 		.append("rect")
 		.attr("x", -borderWidth / 2)
@@ -1578,10 +2214,7 @@ $(document).ready(function() {
 		.attr("height", 1 + borderWidth)
 		.attr("fill", "rgba(0,0,0,0)")
 		.attr("stroke", "#000000")
-		.attr("stroke-width", borderWidth)
-		.on("mousedown", boxSelectStart)
-		.on("mousemove", boxSelecting)
-		.on("mouseup", boxSelectEnd);
+		.attr("stroke-width", borderWidth);
 	mainSVG.selectRect = mainSVG.mainGroup
 		.append("rect")
 		.attr("x", -100)
@@ -1596,11 +2229,11 @@ $(document).ready(function() {
 	mainSVG.lines = mainSVG.mainGroup.append("g");
 	mainSVG.points = mainSVG.mainGroup.append("g");
 
-	sub1SVG.viewGroup = sub1SVG.append("g");
-	sub1SVG.points = sub1SVG.append("g");
-	sub1SVG.lines = sub1SVG.append("g");
-	sub1SVG.faces = sub1SVG.append("g");
-	sub1SVG.viewGroup.viewBoxRect = sub1SVG.viewGroup
+	miniDisplaySVG.viewGroup = miniDisplaySVG.append("g");
+	miniDisplaySVG.points = miniDisplaySVG.append("g");
+	miniDisplaySVG.lines = miniDisplaySVG.append("g");
+	miniDisplaySVG.faces = miniDisplaySVG.append("g");
+	miniDisplaySVG.viewGroup.viewBoxRect = miniDisplaySVG.viewGroup
 		.append("rect")
 		.attr("x", 0)
 		.attr("y", 0)
