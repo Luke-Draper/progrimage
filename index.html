@@ -1,119 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta
-			name="viewport"
-			content="width=device-width, initial-scale=1, shrink-to-fit=no"
-		/>
-		<meta name="author" content="Luke Draper" />
 
-		<title>Progrimage</title>
-	</head>
+<head>
+	<meta charset="utf-8" />
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1, shrink-to-fit=no"
+	/>
+	<meta
+		name="author"
+		content="Luke Draper"
+	/>
 
-	<body cz-shortcut-listen="true">
-		<div id="overflow-disabler">
-			<div id="overflow-disabler-bottom-left"></div>
-			<div id="overflow-disabler-bottom-right"></div>
-			<nav class="navbar navbar-dark sticky-top bg-dark my-0 py-1" id="nav-top">
-				<div class="container-lg">
-					<h1 class="navbar-brand">
-						<img src="logo-white.png" height="32" width="32" /> Progrimage
-					</h1>
+	<title>Progrimage</title>
+</head>
 
-					<div class="btn-group">
-						<button
-							type="button"
-							class="btn btn-light btn-extra"
-							id="btn-undo"
-							title="Undo"
-						>
-							<ion-icon name="arrow-undo-outline"></ion-icon>
-						</button>
-						<button
-							type="button"
-							class="btn btn-light btn-extra"
-							id="btn-redo"
-							title="Redo"
-						>
-							<ion-icon name="arrow-redo-outline"></ion-icon>
-						</button>
-					</div>
+<body cz-shortcut-listen="true">
+	<div id="overflow-disabler">
+		<div id="overflow-disabler-bottom-left"></div>
+		<div id="overflow-disabler-bottom-right"></div>
+		<nav
+			class="navbar navbar-dark sticky-top bg-dark my-0 py-1"
+			id="nav-top"
+		>
+			<div class="container-lg">
+				<h1 class="navbar-brand">
+					<img
+						src="logo-white.png"
+						height="32"
+						width="32"
+					/> Progrimage
+				</h1>
 
-					<div class="btn-group">
-						<button
-							type="button"
-							class="btn btn-light"
-							id="btn-zoom-in"
-							title="Zoom In"
-						>
-							<ion-icon name="add-circle-outline"></ion-icon>
-						</button>
-						<button
-							type="button"
-							class="btn btn-light"
-							id="btn-zoom-reset"
-							title="Zoom Reset"
-						>
-							<ion-icon name="scan-circle-outline"></ion-icon>
-						</button>
-						<button
-							type="button"
-							class="btn btn-light"
-							id="btn-zoom-out"
-							title="Zoom Out"
-						>
-							<ion-icon name="remove-circle-outline"></ion-icon>
-						</button>
-					</div>
+				<div class="btn-group">
+					<button
+						type="button"
+						class="btn btn-light btn-extra"
+						id="btn-undo"
+						title="Undo"
+					>
+						<ion-icon name="arrow-undo-outline"></ion-icon>
+					</button>
+					<button
+						type="button"
+						class="btn btn-light btn-extra"
+						id="btn-redo"
+						title="Redo"
+					>
+						<ion-icon name="arrow-redo-outline"></ion-icon>
+					</button>
+				</div>
 
-					<div class="btn-group">
-						<button
-							class="btn btn-light dropdown-toggle"
-							type="button"
-							title="Background Settings"
-							data-toggle="dropdown"
-						>
-							<ion-icon name="eye-outline"></ion-icon>
-						</button>
-						<div class="dropdown-menu" aria-labelledby="dLabel">
-							<div class="mx-3 btn-group">
-								<button
-									type="button"
-									class="btn btn-light"
-									id="btn-background-vis"
-									title="Toggle Background Visibility"
-								>
-									<ion-icon name="image-outline"></ion-icon>
-								</button>
-								<button
-									type="button"
-									class="btn btn-light"
-									id="btn-points-vis"
-									title="Toggle Points Visibility"
-								>
-									<ion-icon name="ellipsis-vertical-outline"></ion-icon>
-								</button>
-								<button
-									type="button"
-									class="btn btn-light"
-									id="btn-lines-vis"
-									title="Toggle Lines Visibility"
-								>
-									<ion-icon name="menu-outline"></ion-icon>
-								</button>
-								<button
-									type="button"
-									class="btn btn-light"
-									id="btn-faces-vis"
-									title="Toggle Faces Visibility"
-								>
-									<ion-icon name="triangle-outline"></ion-icon>
-								</button>
-							</div>
+				<div class="btn-group">
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-zoom-in"
+						title="Zoom In"
+					>
+						<ion-icon name="add-circle-outline"></ion-icon>
+					</button>
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-zoom-reset"
+						title="Zoom Reset"
+					>
+						<ion-icon name="scan-circle-outline"></ion-icon>
+					</button>
+					<button
+						type="button"
+						class="btn btn-light"
+						id="btn-zoom-out"
+						title="Zoom Out"
+					>
+						<ion-icon name="remove-circle-outline"></ion-icon>
+					</button>
+				</div>
+
+				<div class="btn-group">
+					<button
+						class="btn btn-light dropdown-toggle"
+						type="button"
+						title="Background Settings"
+						data-toggle="dropdown"
+					>
+						<ion-icon name="eye-outline"></ion-icon>
+					</button>
+					<div
+						class="dropdown-menu"
+						aria-labelledby="dLabel"
+					>
+						<div class="mx-3 btn-group">
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-background-vis"
+								title="Toggle Background Visibility"
+							>
+								<ion-icon name="image-outline"></ion-icon>
+							</button>
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-points-vis"
+								title="Toggle Points Visibility"
+							>
+								<ion-icon name="ellipsis-vertical-outline"></ion-icon>
+							</button>
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-lines-vis"
+								title="Toggle Lines Visibility"
+							>
+								<ion-icon name="menu-outline"></ion-icon>
+							</button>
+							<button
+								type="button"
+								class="btn btn-light"
+								id="btn-faces-vis"
+								title="Toggle Faces Visibility"
+							>
+								<ion-icon name="triangle-outline"></ion-icon>
+							</button>
 						</div>
 					</div>
-<!--
+				</div>
+				<!--
 					<div class="btn-group">
 						<button
 							class="btn btn-light dropdown-toggle"
@@ -143,7 +157,7 @@
 						</div>
 					</div>
 				-->
-					<!--<div class="btn-group">
+				<!--<div class="btn-group">
 						<button
 							type="button"
 							class="btn btn-light"
@@ -160,16 +174,16 @@
 						>
 							<ion-icon name="push-outline"></ion-icon>
 						</button>-->
-						<button
-							type="button"
-							class="btn btn-light"
-							id="btn-export"
-							title="Export"
-						>
-							<ion-icon name="log-out-outline"></ion-icon>
-						</button>
-					<!--</div>-->
-<!--
+				<button
+					type="button"
+					class="btn btn-light"
+					id="btn-export"
+					title="Export"
+				>
+					<ion-icon name="log-out-outline"></ion-icon>
+				</button>
+				<!--</div>-->
+				<!--
 					<div class="btn-group">
 						<button
 							type="button"
@@ -193,261 +207,466 @@
 							<button class="dropdown-item" type="button">Circuit</button>
 						</div>
 					</div>-->
-				</div>
-			</nav>
+			</div>
+		</nav>
 
-			<div class="container-xl" id="content-container">
-				<div class="row" id="main-row">
-					<div class="col-9">
-						<div class="row">
+		<div
+			class="container-xl"
+			id="content-container"
+		>
+			<div
+				class="row"
+				id="main-row"
+			>
+				<div class="col-9">
+					<div class="row">
+						<div class="square-border"></div>
+						<span
+							class="main-pos"
+							id="main-canvas"
+						></span>
+						<span
+							class="main-pos"
+							id="main-background"
+						></span>
+						<svg
+							viewBox="0 0 1 1"
+							xmlns="http://www.w3.org/2000/svg"
+							class="main-pos"
+							id="main-svg"
+						></svg>
+						<div id="main-border"></div>
+						<div id="mini-display">
 							<div class="square-border"></div>
-							<span class="main-pos" id="main-canvas"></span>
-							<span class="main-pos" id="main-background"></span>
 							<svg
 								viewBox="0 0 1 1"
 								xmlns="http://www.w3.org/2000/svg"
-								class="main-pos"
-								id="main-svg"
+								class="mini-display-pos"
+								id="mini-display-svg"
 							></svg>
-							<div id="main-border"></div>
-							<div id="mini-display">
-								<div class="square-border"></div>
-								<svg
-									viewBox="0 0 1 1"
-									xmlns="http://www.w3.org/2000/svg"
-									class="mini-display-pos"
-									id="mini-display-svg"
-								></svg>
-							</div>
-							<div id="mini-display-toggle">
-								<button
-									type="button"
-									class="btn btn-sm btn-dark"
-									id="btn-mini-display-toggle"
-									title="Mini Toggle"
-								>
-									<ion-icon
-										name="chevron-forward-outline"
-										id="btn-mini-display-toggle-open"
-									></ion-icon>
-									<ion-icon
-										name="chevron-back-outline"
-										id="btn-mini-display-toggle-close"
-									></ion-icon>
-								</button>
-							</div>
+						</div>
+						<div id="mini-display-toggle">
+							<button
+								type="button"
+								class="btn btn-sm btn-dark"
+								id="btn-mini-display-toggle"
+								title="Mini Toggle"
+							>
+								<ion-icon
+									name="chevron-forward-outline"
+									id="btn-mini-display-toggle-open"
+								></ion-icon>
+								<ion-icon
+									name="chevron-back-outline"
+									id="btn-mini-display-toggle-close"
+								></ion-icon>
+							</button>
 						</div>
 					</div>
-					<div class="col-3" id="tab-sidebar">
-						<div class="row">
-							<img
-								class="square-placeholder"
-								src="https://via.placeholder.com/100x300/FFFFFF/FFFFFF"
-							/>
-							<div class="square-border"></div>
-							<span
-								class="sub-canvas tab-sidebar-pos"
-								id="tab-sidebar-background"
-							></span>
-							<div class="tab-container">
-								<ul class="nav nav-tabs" id="myTab" role="tablist">
-									<li class="nav-item">
-										<a
-											class="nav-link active"
-											id="point-tab"
-											data-toggle="tab"
-											href="#"
-											role="tab"
-											aria-controls="point-tab-content"
-											aria-selected="true"
-											><ion-icon name="ellipsis-vertical-outline"></ion-icon></a
-										>
-									</li>
-									<li class="nav-item">
-										<a
-											class="nav-link"
-											id="line-tab"
-											data-toggle="tab"
-											href="#"
-											role="tab"
-											aria-controls="line-tab-content"
-											aria-selected="false"
-											></ion-icon><ion-icon name="menu-outline"></a
-										>
-									</li>
-									<li class="nav-item">
-										<a
-											class="nav-link"
-											id="face-tab"
-											data-toggle="tab"
-											href="#"
-											role="tab"
-											aria-controls="face-tab-content"
-											aria-selected="false"
-											><ion-icon name="triangle-outline"></ion-icon></a
-										>
-									</li>
-									<li class="nav-item">
-										<a
-											class="nav-link"
-											id="layer-tab"
-											data-toggle="tab"
-											href="#"
-											role="tab"
-											aria-controls="layer-tab-content"
-											aria-selected="false"
-											><ion-icon name="layers-outline"></ion-icon></a
-										>
-									</li>
-									<li class="nav-item">
-										<a
-											class="nav-link"
-											id="background-tab"
-											data-toggle="tab"
-											href="#"
-											role="tab"
-											aria-controls="background-tab-content"
-											aria-selected="false"
-											><ion-icon name="image-outline"></ion-icon></a
-										>
-									</li>
-								</ul>
-								<div class="tab-content" id="myTabContent">
-									<div
-										class="tab-pane show active"
-										id="point-tab-content"
-										role="tabpanel"
-										aria-labelledby="point-tab"
+				</div>
+				<div
+					class="col-3"
+					id="tab-sidebar"
+				>
+					<div class="row">
+						<img
+							class="square-placeholder"
+							src="https://via.placeholder.com/100x300/FFFFFF/FFFFFF"
+						/>
+						<div class="square-border"></div>
+						<span
+							class="sub-canvas tab-sidebar-pos"
+							id="tab-sidebar-background"
+						></span>
+						<div class="tab-container">
+							<ul
+								class="nav nav-tabs"
+								id="myTab"
+								role="tablist"
+							>
+								<li class="nav-item">
+									<a
+										class="nav-link active"
+										id="point-tab"
+										data-toggle="tab"
+										href="#"
+										role="tab"
+										aria-controls="point-tab-content"
+										aria-selected="true"
 									>
-										<div class="color-picker" id="point-color-picker"></div>
-										<div class="color-picker-number-label" id="point-color-picker-number-label">
-											<span class="color-picker-number-input-label">H</span>
-											<span class="color-picker-number-input-label">S</span>
-											<span class="color-picker-number-input-label">V</span>
-											<span class="color-picker-number-input-label">A</span>
-										</div>
-										<div class="color-picker-number" id="point-color-picker-number">
-											<input class="color-picker-number-input" type="number" id="point-hue-number" min="0" max="360" value="0">
-											<input class="color-picker-number-input" type="number" id="point-saturation-number" min="0" max="100" value="0">
-											<input class="color-picker-number-input" type="number" id="point-value-number" min="0" max="100" value="0">
-											<input class="color-picker-number-input" type="number" id="point-alpha-number" min="0" max="1" value="1" step="0.01">
-										</div>
-										<div class="color-picker-number-label" id="point-radius-number-label">
-											<span>Radius :</span>
-											<input class="color-picker-number-input" type="number" id="point-radius-number" min="0" max="0.5" value="0" step="0.001">
-										</div>
-										<button
-											type="button"
-											class="btn btn-light disabled"
-											id="btn-point-apply"
-											title="Apply Changes to Points"
-											disabled
-										>
-											Apply
-										</button>
+										<ion-icon name="ellipsis-vertical-outline"></ion-icon>
+									</a>
+								</li>
+								<li class="nav-item">
+									<a
+										class="nav-link"
+										id="line-tab"
+										data-toggle="tab"
+										href="#"
+										role="tab"
+										aria-controls="line-tab-content"
+										aria-selected="false"
+									></ion-icon>
+										<ion-icon name="menu-outline">
+									</a>
+								</li>
+								<li class="nav-item">
+									<a
+										class="nav-link"
+										id="face-tab"
+										data-toggle="tab"
+										href="#"
+										role="tab"
+										aria-controls="face-tab-content"
+										aria-selected="false"
+									>
+										<ion-icon name="triangle-outline"></ion-icon>
+									</a>
+								</li>
+								<li class="nav-item">
+									<a
+										class="nav-link"
+										id="layer-tab"
+										data-toggle="tab"
+										href="#"
+										role="tab"
+										aria-controls="layer-tab-content"
+										aria-selected="false"
+									>
+										<ion-icon name="layers-outline"></ion-icon>
+									</a>
+								</li>
+								<li class="nav-item">
+									<a
+										class="nav-link"
+										id="background-tab"
+										data-toggle="tab"
+										href="#"
+										role="tab"
+										aria-controls="background-tab-content"
+										aria-selected="false"
+									>
+										<ion-icon name="image-outline"></ion-icon>
+									</a>
+								</li>
+							</ul>
+							<div
+								class="tab-content"
+								id="myTabContent"
+							>
+								<div
+									class="tab-pane show active"
+									id="point-tab-content"
+									role="tabpanel"
+									aria-labelledby="point-tab"
+								>
+									<div
+										class="color-picker"
+										id="point-color-picker"
+									></div>
+									<div
+										class="color-picker-number-label"
+										id="point-color-picker-number-label"
+									>
+										<span class="color-picker-number-input-label">H</span>
+										<span class="color-picker-number-input-label">S</span>
+										<span class="color-picker-number-input-label">V</span>
+										<span class="color-picker-number-input-label">A</span>
 									</div>
 									<div
-										class="tab-pane"
-										id="line-tab-content"
-										role="tabpanel"
-										aria-labelledby="line-tab"
+										class="color-picker-number"
+										id="point-color-picker-number"
 									>
-										<div class="color-picker" id="line-color-picker"></div>
-										<div class="color-picker-number-label" id="line-color-picker-number-label">
-											<span class="color-picker-number-input-label">H</span>
-											<span class="color-picker-number-input-label">S</span>
-											<span class="color-picker-number-input-label">V</span>
-											<span class="color-picker-number-input-label">A</span>
-										</div>
-										<div class="color-picker-number" id="line-color-picker-number">
-											<input class="color-picker-number-input" type="number" id="line-hue-number" min="0" max="360" value="0">
-											<input class="color-picker-number-input" type="number" id="line-saturation-number" min="0" max="100" value="0">
-											<input class="color-picker-number-input" type="number" id="line-value-number" min="0" max="100" value="0">
-											<input class="color-picker-number-input" type="number" id="line-alpha-number" min="0" max="1" value="1" step="0.01">
-										</div>
-										<div class="color-picker-number-label" id="line-width-number-label">
-											<span>Width :</span>
-											<input class="color-picker-number-input" type="number" id="line-width-number" min="0" max="0.5" value="0" step="0.001">
-										</div>
-										<button
-											type="button"
-											class="btn btn-light disabled"
-											id="btn-line-apply"
-											title="Apply Changes to Lines"
-											disabled
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="point-hue-number"
+											min="0"
+											max="360"
+											value="0"
 										>
-											Apply
-										</button>
-									</div>
-									<div
-										class="tab-pane"
-										id="face-tab-content"
-										role="tabpanel"
-										aria-labelledby="face-tab"
-									>
-										<div class="color-picker" id="face-color-picker"></div>
-										<div class="color-picker-number-label" id="face-color-picker-number-label">
-											<span class="color-picker-number-input-label">H</span>
-											<span class="color-picker-number-input-label">S</span>
-											<span class="color-picker-number-input-label">V</span>
-											<span class="color-picker-number-input-label">A</span>
-										</div>
-										<div class="color-picker-number" id="face-color-picker-number">
-											<input class="color-picker-number-input" type="number" id="face-hue-number" min="0" max="360" value="0">
-											<input class="color-picker-number-input" type="number" id="face-saturation-number" min="0" max="100" value="0">
-											<input class="color-picker-number-input" type="number" id="face-value-number" min="0" max="100" value="0">
-											<input class="color-picker-number-input" type="number" id="face-alpha-number" min="0" max="1" value="1" step="0.01">
-										</div>
-										<button
-											type="button"
-											class="btn btn-light disabled"
-											id="btn-face-apply"
-											title="Apply Changes to Faces"
-											disabled
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="point-saturation-number"
+											min="0"
+											max="100"
+											value="0"
 										>
-											Apply
-										</button>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="point-value-number"
+											min="0"
+											max="100"
+											value="0"
+										>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="point-alpha-number"
+											min="0"
+											max="1"
+											value="1"
+											step="0.01"
+										>
 									</div>
 									<div
-										class="tab-pane"
-										id="layer-tab-content"
-										role="tabpanel"
-										aria-labelledby="layer-tab"
+										class="color-picker-number-label"
+										id="point-radius-number-label"
 									>
-										layer
+										<span>Radius :</span>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="point-radius-number"
+											min="0"
+											max="0.5"
+											value="0"
+											step="0.001"
+										>
+									</div>
+									<button
+										type="button"
+										class="btn btn-light disabled"
+										id="btn-point-apply"
+										title="Apply Changes to Points"
+										disabled
+									>
+										Apply
+									</button>
+								</div>
+								<div
+									class="tab-pane"
+									id="line-tab-content"
+									role="tabpanel"
+									aria-labelledby="line-tab"
+								>
+									<div
+										class="color-picker"
+										id="line-color-picker"
+									></div>
+									<div
+										class="color-picker-number-label"
+										id="line-color-picker-number-label"
+									>
+										<span class="color-picker-number-input-label">H</span>
+										<span class="color-picker-number-input-label">S</span>
+										<span class="color-picker-number-input-label">V</span>
+										<span class="color-picker-number-input-label">A</span>
 									</div>
 									<div
-										class="tab-pane"
-										id="background-tab-content"
-										role="tabpanel"
-										aria-labelledby="background-tab"
+										class="color-picker-number"
+										id="line-color-picker-number"
 									>
-										background
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="line-hue-number"
+											min="0"
+											max="360"
+											value="0"
+										>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="line-saturation-number"
+											min="0"
+											max="100"
+											value="0"
+										>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="line-value-number"
+											min="0"
+											max="100"
+											value="0"
+										>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="line-alpha-number"
+											min="0"
+											max="1"
+											value="1"
+											step="0.01"
+										>
 									</div>
+									<div
+										class="color-picker-number-label"
+										id="line-width-number-label"
+									>
+										<span>Width :</span>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="line-width-number"
+											min="0"
+											max="0.5"
+											value="0"
+											step="0.001"
+										>
+									</div>
+									<button
+										type="button"
+										class="btn btn-light disabled"
+										id="btn-line-apply"
+										title="Apply Changes to Lines"
+										disabled
+									>
+										Apply
+									</button>
+								</div>
+								<div
+									class="tab-pane"
+									id="face-tab-content"
+									role="tabpanel"
+									aria-labelledby="face-tab"
+								>
+									<div
+										class="color-picker"
+										id="face-color-picker"
+									></div>
+									<div
+										class="color-picker-number-label"
+										id="face-color-picker-number-label"
+									>
+										<span class="color-picker-number-input-label">H</span>
+										<span class="color-picker-number-input-label">S</span>
+										<span class="color-picker-number-input-label">V</span>
+										<span class="color-picker-number-input-label">A</span>
+									</div>
+									<div
+										class="color-picker-number"
+										id="face-color-picker-number"
+									>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="face-hue-number"
+											min="0"
+											max="360"
+											value="0"
+										>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="face-saturation-number"
+											min="0"
+											max="100"
+											value="0"
+										>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="face-value-number"
+											min="0"
+											max="100"
+											value="0"
+										>
+										<input
+											class="color-picker-number-input"
+											type="number"
+											id="face-alpha-number"
+											min="0"
+											max="1"
+											value="1"
+											step="0.01"
+										>
+									</div>
+									<button
+										type="button"
+										class="btn btn-light disabled"
+										id="btn-face-apply"
+										title="Apply Changes to Faces"
+										disabled
+									>
+										Apply
+									</button>
+								</div>
+								<div
+									class="tab-pane"
+									id="layer-tab-content"
+									role="tabpanel"
+									aria-labelledby="layer-tab"
+								>
+									<button
+										type="button"
+										class="btn btn-light"
+										id="btn-add-layer"
+										title="Add Layer"
+									>
+										<ion-icon name="add-outline"></ion-icon>
+									</button>
+									<ul id="layer-sortable-list">
+										<li
+											id="Layer1"
+											class="layer-list-item"
+										>
+											<ion-icon
+												name="swap-vertical"
+												class="layer-list-move-icon"
+											></ion-icon><input
+												class="layer-list-name"
+												type="text"
+												value="Layer1"
+											>
+											<div class="btn-group btn-layer-group"><button
+													type="button"
+													class="btn btn-light btn-layer-group-inside btn-layer-visibility"
+													title="Toggle Layer Visibility"
+												>
+													<ion-icon name="eye-outline"></ion-icon>
+												</button>
+												<button
+													type="button"
+													class="btn btn-light btn-layer-group-inside btn-layer-move"
+													title="Move Selection to Layer"
+												>
+													<ion-icon name="analytics-outline"></ion-icon>
+												</button><button
+													type="button"
+													class="btn btn-light btn-layer-group-inside btn-layer-delete"
+													title="Delete Layer"
+												>
+													<ion-icon name="trash-outline"></ion-icon>
+												</button></div>
+										</li>
+									</ul>
+								</div>
+								<div
+									class="tab-pane"
+									id="background-tab-content"
+									role="tabpanel"
+									aria-labelledby="background-tab"
+								>
+									background
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-				<div id="left-right-cover"></div>
 			</div>
+			<div id="left-right-cover"></div>
 		</div>
+	</div>
 
-		<script
-			type="module"
-			src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"
-		></script>
-		<script
-			nomodule=""
-			src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.js"
-		></script>
+	<script
+		type="module"
+		src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.esm.js"
+	></script>
+	<script
+		nomodule=""
+		src="https://unpkg.com/ionicons@5.0.0/dist/ionicons/ionicons.js"
+	></script>
 
-		<script src="./node_modules/immutable/dist/immutable.min.js"></script>
-		<script src="./node_modules/d3/dist/d3.min.js"></script>
-		<script src="./node_modules/d3-delaunay/dist/d3-delaunay.min.js"></script>
-		<script src="./node_modules/jquery/dist/jquery.min.js"></script>
-		<script src="./node_modules/popper.js/dist/popper.min.js"></script>
-		<script src="./node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-		<script src="./dist/bundle.js"></script>
-	</body>
+	<script src="./node_modules/d3/dist/d3.min.js"></script>
+	<script src="./node_modules/d3-delaunay/dist/d3-delaunay.min.js"></script>
+	<script src="./node_modules/jquery/dist/jquery.min.js"></script>
+	<script src="./node_modules/popper.js/dist/popper.min.js"></script>
+	<script src="./node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+	<script src="./dist/bundle.js"></script>
+</body>
+
 </html>

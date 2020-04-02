@@ -180,6 +180,52 @@ body {
 	width: 30%;
 }
 
+#layer-sortable-list {
+	list-style: none;
+	padding: 0;
+	overflow: hidden;
+	overflow-y: scroll;
+	height: 560px;
+	width: 180px;
+}
+
+.active-layer .layer-list-move-icon {
+	background-color: $active-color;
+}
+
+.layer-list-item {
+	display: grid;
+	border-top: 1px solid $active-color;
+	margin-top: 2px;
+	margin-bottom: 2px;
+	grid-template-areas:
+		"a b"
+		"a c";
+	grid-template-columns: 30px 130px;
+	width: 170px;
+}
+
+.layer-list-move-icon {
+	grid-area: a;
+	border-radius: 5px;
+	padding: 20px 4px;
+	margin: 6px 3px;
+	cursor: grab;
+}
+
+.layer-list-name {
+	grid-area: b;
+	padding-left: 2px;
+}
+
+.btn-layer-group {
+	grid-area: c;
+}
+
+.btn-layer-group-inside {
+	padding: 4px 10px;
+}
+
 .color-picker-number-label,
 .color-picker-number {
 	display: flex;

@@ -2,6 +2,8 @@ import "../scss/style.js";
 import * as d3 from "../../node_modules/d3/dist/d3.js";
 import { Delaunay } from "d3-delaunay";
 import iro from "@jaames/iro";
+import $ from "jquery/dist/jquery";
+import "jquery-ui/ui/widgets/sortable.js";
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -124,7 +126,8 @@ var undoHistory = [];
 
 var zoom;
 
-var currentLayer = 100;
+var currentLayer = "Layer1";
+var redrawLayers = true;
 
 var idAccumulator = 0;
 var initial = null;
@@ -253,7 +256,9 @@ class Point extends SVGCanvasElement {
 	}
 
 	select() {
-		this.selected = true;
+		if (currentLayer == this.layer) {
+			this.selected = true;
+		}
 	}
 	deselect() {
 		this.selected = false;
@@ -331,8 +336,10 @@ class Line extends SVGCanvasElement {
 	}
 
 	select() {
-		getByID(this.point1ID).select();
-		getByID(this.point2ID).select();
+		if (currentLayer == this.layer) {
+			getByID(this.point1ID).select();
+			getByID(this.point2ID).select();
+		}
 	}
 	deselect() {
 		getByID(this.point1ID).deselect();
@@ -430,9 +437,11 @@ class Face extends SVGCanvasElement {
 	}
 
 	select() {
-		getByID(this.point1ID).select();
-		getByID(this.point2ID).select();
-		getByID(this.point3ID).select();
+		if (currentLayer == this.layer) {
+			getByID(this.point1ID).select();
+			getByID(this.point2ID).select();
+			getByID(this.point3ID).select();
+		}
 	}
 	deselect() {
 		getByID(this.point1ID).deselect();
@@ -551,11 +560,13 @@ class Face extends SVGCanvasElement {
 var btnUndoPress = function() {
 	keydown = "~";
 	if (undoHistoryIndex > 0) undoHistoryIndex--;
+	redrawLayers = true;
 	draw();
 };
 var btnRedoPress = function() {
 	keydown = "~";
 	if (undoHistoryIndex < undoHistory.length) undoHistoryIndex++;
+	redrawLayers = true;
 	draw();
 };
 
@@ -1250,6 +1261,174 @@ var faceNumberChange = function() {
 	btnFaceApplyUpdate();
 };
 
+var stopLayerSort = function(e, u) {
+	var layerListElement = $("#layer-sortable-list");
+	var draggedListItem = u.item;
+	var layerListItems = layerListElement.children();
+	var newListItemIds = [];
+	var orderChanged = false;
+	layerListItems.each(function(index) {
+		var elementId = $(this).attr("id");
+		newListItemIds.push(elementId);
+		if (!orderChanged && index < undoHistory[undoHistoryIndex].layers.length) {
+			if (undoHistory[undoHistoryIndex].layers[index].name != elementId) {
+				orderChanged = true;
+			}
+		} else {
+			orderChanged = true;
+		}
+	});
+	if (!orderChanged) {
+		currentLayer = draggedListItem.attr("id");
+		$(".layer-list-item").removeClass("active-layer");
+		draggedListItem.addClass("active-layer");
+	} else {
+		operation(function(data) {
+			var newLayers = [];
+			for (var i = 0; i < newListItemIds.length; i++) {
+				var layerVisible = true;
+				for (var j = 0; j < data.layers.length; j++) {
+					if (data.layers[j].name == newListItemIds[i]) {
+						layerVisible = data.layers[j].visible;
+						break;
+					}
+				}
+				newLayers.push({ name: newListItemIds[i], visible: layerVisible });
+			}
+			data.layers = newLayers;
+			return data;
+		});
+	}
+};
+
+var selectLayer = function() {
+	$(".layer-list-item").removeClass("active-layer");
+	$(this)
+		.parent()
+		.addClass("active-layer");
+	currentLayer = $(this)
+		.parent()
+		.attr("id");
+};
+
+var deleteLayer = function() {
+	var layerId = $(this)
+		.parent()
+		.parent()
+		.attr("id");
+	operation(function(data) {
+		if (data.layers.length > 1) {
+			var newLayers = [];
+			for (var i = 0; i < data.layers.length; i++) {
+				if (data.layers[i].name != layerId) {
+					newLayers.push(data.layers[i]);
+				}
+			}
+			data.layers = newLayers;
+			redrawLayers = true;
+		}
+		return data;
+	});
+};
+
+var moveSelectionToLayer = function() {
+	var layerId = $(this)
+		.parent()
+		.parent()
+		.attr("id");
+	operation(function(data) {
+		data.points.forEach(function(point) {
+			if (point.isSelected()) {
+				point.layer = layerId;
+			}
+		});
+		data.lines.forEach(function(line) {
+			if (line.isSelected()) {
+				line.layer = layerId;
+			}
+		});
+		data.faces.forEach(function(face) {
+			if (face.isSelected()) {
+				face.layer = layerId;
+			}
+		});
+		return data;
+	});
+};
+
+var editLayerName = function() {
+	var layerId = $(this)
+		.parent()
+		.attr("id");
+	var newId = d3
+		.select(this)
+		.property("value")
+		.replace(/\s/g, "");
+	operation(function(data) {
+		data.points.forEach(function(point) {
+			if (point.layer == layerId) {
+				point.layer = newId;
+			}
+		});
+		data.lines.forEach(function(line) {
+			if (line.layer == layerId) {
+				line.layer = newId;
+			}
+		});
+		data.faces.forEach(function(face) {
+			if (face.layer == layerId) {
+				face.layer = newId;
+			}
+		});
+		data.layers.forEach(function(layer) {
+			if (layer.name == layerId) {
+				layer.name = newId;
+			}
+		});
+		redrawLayers = true;
+		return data;
+	});
+};
+
+var toggleLayerVisibility = function() {
+	var layerId = $(this)
+		.parent()
+		.parent()
+		.attr("id");
+	operation(function(data) {
+		var newLayers = [];
+		for (var i = 0; i < data.layers.length; i++) {
+			if (data.layers[i].name == layerId) {
+				newLayers.push({
+					name: data.layers[i].name,
+					visible: !data.layers[i].visible
+				});
+			} else {
+				newLayers.push(data.layers[i]);
+			}
+		}
+		data.layers = newLayers;
+		redrawLayers = true;
+		return data;
+	});
+};
+
+var addLayer = function() {
+	operation(function(data) {
+		var nameNum = 1;
+		while (
+			data.layers.some(function(layer) {
+				return layer.name == `Layer${nameNum}`;
+			})
+		) {
+			nameNum++;
+		}
+		data.layers.unshift({ name: `Layer${nameNum}`, visible: true });
+		redrawLayers = true;
+		return data;
+	});
+};
+
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
@@ -1269,7 +1448,7 @@ var faceNumberChange = function() {
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 var downKey = function() {
-	if (d3.event.ctrlKey || d3.event.shiftKey || d3.event.altKey) {
+	if (d3.event.ctrlKey || d3.event.altKey) {
 		d3.event.preventDefault();
 	}
 	keydown = d3.event.key;
@@ -1392,7 +1571,8 @@ function duplicateData(data) {
 	var newData = {
 		points: [],
 		lines: [],
-		faces: []
+		faces: [],
+		layers: []
 	};
 
 	data.points.forEach(function(point) {
@@ -1433,6 +1613,12 @@ function duplicateData(data) {
 				face.layer
 			)
 		);
+	});
+
+	data.layers.forEach(function(layer) {
+		if (!newData.layers.includes(layer)) {
+			newData.layers.push(layer);
+		}
 	});
 
 	return newData;
@@ -2028,32 +2214,44 @@ function createColorPicker(id) {
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 function draw() {
-	var pointCanvasHTML = "";
-	var pointBasicHTML = "";
-	undoHistory[undoHistoryIndex].points.forEach(function(point) {
-		pointCanvasHTML = pointCanvasHTML.concat(point.svgCanvas());
-		pointBasicHTML = pointBasicHTML.concat(point.svgBasic());
-	});
-	mainSVG.points.html(pointCanvasHTML);
-	miniDisplaySVG.points.html(pointBasicHTML);
+	if (redrawLayers) {
+		renderLayers();
+		redrawLayers = false;
+	}
 
-	var lineCanvasHTML = "";
-	var lineBasicHTML = "";
-	undoHistory[undoHistoryIndex].lines.forEach(function(line) {
-		lineCanvasHTML = lineCanvasHTML.concat(line.svgCanvas());
-		lineBasicHTML = lineBasicHTML.concat(line.svgBasic());
-	});
-	mainSVG.lines.html(lineCanvasHTML);
-	miniDisplaySVG.lines.html(lineBasicHTML);
+	var canvasHTML = "";
+	var basicHTML = "";
 
-	var faceCanvasHTML = "";
-	var faceBasicHTML = "";
-	undoHistory[undoHistoryIndex].faces.forEach(function(face) {
-		faceCanvasHTML = faceCanvasHTML.concat(face.svgCanvas());
-		faceBasicHTML = faceBasicHTML.concat(face.svgBasic());
-	});
-	mainSVG.faces.html(faceCanvasHTML);
-	miniDisplaySVG.faces.html(faceBasicHTML);
+	undoHistory[undoHistoryIndex].layers
+		.slice()
+		.reverse()
+		.forEach(function(layer) {
+			if (layer.visible) {
+				undoHistory[undoHistoryIndex].faces.forEach(function(face) {
+					if (face.layer == layer.name) {
+						canvasHTML = canvasHTML.concat(face.svgCanvas());
+						basicHTML = basicHTML.concat(face.svgBasic());
+					}
+				});
+
+				undoHistory[undoHistoryIndex].lines.forEach(function(line) {
+					if (line.layer == layer.name) {
+						canvasHTML = canvasHTML.concat(line.svgCanvas());
+						basicHTML = basicHTML.concat(line.svgBasic());
+					}
+				});
+
+				undoHistory[undoHistoryIndex].points.forEach(function(point) {
+					if (point.layer == layer.name) {
+						canvasHTML = canvasHTML.concat(point.svgCanvas());
+						basicHTML = basicHTML.concat(point.svgBasic());
+					}
+				});
+			}
+		});
+
+	mainSVG.base.html(canvasHTML);
+	miniDisplaySVG.base.html(basicHTML);
 
 	d3.selectAll(".svg-points").call(
 		d3
@@ -2113,6 +2311,71 @@ function renderSVGOffset(offsetX, offsetY) {
 	}
 }
 
+function renderLayers() {
+	var newHTML = "";
+	for (var i = 0; i < undoHistory[undoHistoryIndex].layers.length; i++) {
+		newHTML = newHTML.concat(
+			createLayerHTML(undoHistory[undoHistoryIndex].layers[i])
+		);
+	}
+	$("#layer-sortable-list").html(newHTML);
+
+	$("#layer-sortable-list")
+		.sortable()
+		.on("sortstop", stopLayerSort);
+
+	$(".btn-layer-visibility").on("click", toggleLayerVisibility);
+	$(".btn-layer-move").on("click", moveSelectionToLayer);
+	$(".btn-layer-delete").on("click", deleteLayer);
+	$(".layer-list-move-icon").on("click", selectLayer);
+	$(".layer-list-name").on("change", editLayerName);
+}
+
+function createLayerHTML(layer) {
+	var active = false;
+	if (layer.name == currentLayer) {
+		active = true;
+	}
+	return `
+<li
+	id="${layer.name}"
+	class="layer-list-item ${active ? " active-layer" : ""}"
+>
+	<ion-icon
+		name="swap-vertical"
+		class="layer-list-move-icon"
+	></ion-icon>
+	<input
+		class="layer-list-name"
+		type="text"
+		value="${layer.name}"
+	>
+	<div class="btn-group btn-layer-group">
+		<button
+			type="button"
+			class="btn btn-light btn-layer-group-inside btn-layer-visibility"
+			title="Toggle Layer Visibility"
+		>
+			<ion-icon name="eye${layer.visible ? "" : "-off"}-outline"></ion-icon>
+		</button>
+		<button
+			type="button"
+			class="btn btn-light btn-layer-group-inside btn-layer-move"
+			title="Move Selection to Layer"
+		>
+			<ion-icon name="analytics-outline"></ion-icon>
+		</button><button
+			type="button"
+			class="btn btn-light btn-layer-group-inside btn-layer-delete"
+			title="Delete Layer"
+		>
+			<ion-icon name="trash-outline"></ion-icon>
+		</button>
+	</div>
+</li>
+`;
+}
+
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
@@ -2135,7 +2398,8 @@ $(document).ready(function() {
 	undoHistory.push({
 		points: [],
 		lines: [],
-		faces: []
+		faces: [],
+		layers: [{ name: "Layer1", visible: true }]
 	});
 	zoom = d3.zoom();
 
@@ -2225,14 +2489,10 @@ $(document).ready(function() {
 		.attr("stroke", "rgba(80, 180, 220, 0.6)")
 		.attr("stroke-width", borderWidth / 3)
 		.style("pointer-events", "none");
-	mainSVG.faces = mainSVG.mainGroup.append("g");
-	mainSVG.lines = mainSVG.mainGroup.append("g");
-	mainSVG.points = mainSVG.mainGroup.append("g");
+	mainSVG.base = mainSVG.mainGroup.append("g");
 
 	miniDisplaySVG.viewGroup = miniDisplaySVG.append("g");
-	miniDisplaySVG.points = miniDisplaySVG.append("g");
-	miniDisplaySVG.lines = miniDisplaySVG.append("g");
-	miniDisplaySVG.faces = miniDisplaySVG.append("g");
+	miniDisplaySVG.base = miniDisplaySVG.append("g");
 	miniDisplaySVG.viewGroup.viewBoxRect = miniDisplaySVG.viewGroup
 		.append("rect")
 		.attr("x", 0)
@@ -2242,6 +2502,17 @@ $(document).ready(function() {
 		.attr("fill", "rgba(0,0,0,0)")
 		.attr("stroke", "rgba(0,64,128,0.5)")
 		.attr("stroke-width", borderWidth);
+
+	$("#layer-sortable-list")
+		.sortable()
+		.on("sortstop", stopLayerSort);
+	$("#btn-add-layer").on("click", addLayer);
+
+	$(".btn-layer-visibility").on("click", toggleLayerVisibility);
+	$(".btn-layer-move").on("click", moveSelectionToLayer);
+	$(".btn-layer-delete").on("click", deleteLayer);
+	$(".layer-list-move-icon").on("click", selectLayer);
+	$(".layer-list-name").on("change", editLayerName);
 
 	mainSVG.call(
 		zoom
@@ -2265,4 +2536,5 @@ $(document).ready(function() {
 			.on("zoom", zooming)
 			.on("end", zoomEnd)
 	);
+	draw();
 });
