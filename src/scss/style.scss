@@ -193,6 +193,13 @@ body {
 	background-color: $active-color;
 }
 
+.misc-canvas {
+	z-index: -100;
+	position: absolute;
+	left: -3000;
+	top: -3000;
+}
+
 .layer-list-item {
 	display: grid;
 	border-top: 1px solid $active-color;

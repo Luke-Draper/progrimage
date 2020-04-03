@@ -4,6 +4,7 @@ import { Delaunay } from "d3-delaunay";
 import iro from "@jaames/iro";
 import $ from "jquery/dist/jquery";
 import "jquery-ui/ui/widgets/sortable.js";
+import fast9 from "fast9/fast9.js";
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -45,6 +46,7 @@ const btnZoomReset = d3.select("#btn-zoom-reset");
 const btnZoomOut = d3.select("#btn-zoom-out");
 
 const btnBackgroundVis = d3.select("#btn-background-vis");
+const btnAddPoints = d3.select("#btn-back-add-points");
 const btnPointsVis = d3.select("#btn-points-vis");
 const btnLinesVis = d3.select("#btn-lines-vis");
 const btnFacesVis = d3.select("#btn-faces-vis");
@@ -53,8 +55,10 @@ const mainSVG = d3.select("#main-svg");
 const miniDisplaySVG = d3.select("#mini-display-svg");
 
 const tabSidebarBackground = d3.select("#tab-sidebar-background");
+const thresholdNumber = d3.select("#threshold-number");
 
 const backgroundCanvas = d3.select("#main-background");
+const imageBase = d3.select("#image-base");
 const backForm = d3.select("#backgroundImageLoader");
 
 const miniDisplay = d3.select("#mini-display");
@@ -1515,28 +1519,91 @@ var mouseMove = function() {
 
 var uploadBackground = function() {
 	if (this.files && this.files[0]) {
-		var canvas = backgroundCanvas.node();
-		var ctx = canvas.getContext("2d");
+		var backCanvas = backgroundCanvas.node();
+		var backCtx = backCanvas.getContext("2d");
+
+		var baseCanvas = imageBase.node();
+		var baseCtx = baseCanvas.getContext("2d");
 
 		var reader = new FileReader();
 		reader.onload = function(e) {
 			var img = new Image();
 			img.onload = function() {
 				if (img.width > img.height) {
-					canvas.width = img.width;
-					canvas.height = img.width;
-					ctx.drawImage(img, 0, (img.width - img.height) / 2);
+					backCanvas.width = img.width;
+					backCanvas.height = img.width;
+					backCtx.drawImage(img, 0, (img.width - img.height) / 2);
 				} else {
-					canvas.width = img.height;
-					canvas.height = img.height;
-					ctx.drawImage(img, (img.height - img.width) / 2, 0);
+					backCanvas.width = img.height;
+					backCanvas.height = img.height;
+					backCtx.drawImage(img, (img.height - img.width) / 2, 0);
 				}
+				baseCanvas.width = img.width;
+				baseCanvas.height = img.height;
+				baseCtx.drawImage(img, 0, 0);
 			};
 			img.src = e.target.result;
 		};
 		reader.readAsDataURL(this.files[0]);
 	}
 };
+
+var setupBackgroundPoints = function() {
+	var baseCanvas = imageBase.node();
+	var baseCtx = baseCanvas.getContext("2d");
+	var imgData = baseCtx.getImageData(0, 0, baseCanvas.width, baseCanvas.height);
+	var grayScale = new Uint8Array(baseCanvas.width * baseCanvas.height);
+	for (var i = 0; i < imgData.data.length; i += 4) {
+		grayScale[i / 4] = parseInt(
+			d3.hsl(
+				d3
+					.rgb(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2])
+					.formatHsl()
+			).l * 255
+		);
+	}
+	var cornerWeights = fast9.detect(
+		grayScale,
+		baseCanvas.width,
+		baseCanvas.height,
+		thresholdNumber.property("value")
+	);
+	console.log(cornerWeights);
+	console.log(baseCanvas.width);
+	console.log(baseCanvas.height);
+
+	operation(function(data) {
+		data.layers.push({ name: "setPoints", visible: true });
+		cornerWeights.forEach(function(weight) {
+			var id = `p${new Date().getTime()}-${(idAccumulator++)
+				.toString()
+				.padStart(8, "0")}`;
+			var xy = convertImageXYToSVG(weight);
+			var dataIndex = (weight.x + weight.y * baseCanvas.width) * 4;
+			var pointColor = `rgb(${imgData.data[dataIndex]}, ${
+				imgData.data[dataIndex + 1]
+			}, ${imgData.data[dataIndex + 2]})`;
+			data.points.push(
+				new Point(id, xy.x, xy.y, 0.0015, pointColor, "setPoints", false)
+			);
+		});
+		return data;
+	});
+};
+
+function convertImageXYToSVG(xyCoords) {
+	var baseCanvas = imageBase.node();
+	var squareWidth = Math.max(baseCanvas.height, baseCanvas.width);
+	if (baseCanvas.width > baseCanvas.height) {
+		xyCoords.y = xyCoords.y + (squareWidth - baseCanvas.height) / 2;
+	} else {
+		xyCoords.x = xyCoords.x + (squareWidth - baseCanvas.width) / 2;
+	}
+	return {
+		x: xyCoords.x / squareWidth,
+		y: xyCoords.y / squareWidth
+	};
+}
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -2459,6 +2526,8 @@ $(document).ready(function() {
 	lineAlphaNumber.on("change", lineNumberChange);
 
 	btnFaceApply.on("click", btnFaceApplyPress);
+
+	btnAddPoints.on("click", setupBackgroundPoints);
 
 	faceHueNumber.on("change", faceNumberChange);
 	faceSaturationNumber.on("change", faceNumberChange);

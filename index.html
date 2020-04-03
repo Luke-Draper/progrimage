@@ -130,62 +130,6 @@
 				<!--
 					<div class="btn-group">
 						<button
-							class="btn btn-light dropdown-toggle"
-							type="button"
-							title="Background Settings"
-							data-toggle="dropdown"
-						>
-							<ion-icon name="images-outline"></ion-icon>
-						</button>
-						<div class="dropdown-menu" aria-labelledby="dLabel">
-							<div class="ml-3">
-								<input
-									type="file"
-									name="backgroundImageLoader"
-									id="backgroundImageLoader"
-									accept="image/png,image/jpeg"
-								/>
-								<button
-									type="button"
-									class="btn btn-light"
-									id="btn-back-remove"
-									title="Remove Background"
-								>
-									<ion-icon name="backspace-outline"></ion-icon>
-								</button>
-							</div>
-						</div>
-					</div>
-				-->
-				<!--<div class="btn-group">
-						<button
-							type="button"
-							class="btn btn-light"
-							id="btn-download"
-							title="Download"
-						>
-							<ion-icon name="download-outline"></ion-icon>
-						</button>
-						<button
-							type="button"
-							class="btn btn-light"
-							id="btn-upload"
-							title="Upload"
-						>
-							<ion-icon name="push-outline"></ion-icon>
-						</button>-->
-				<button
-					type="button"
-					class="btn btn-light"
-					id="btn-export"
-					title="Export"
-				>
-					<ion-icon name="log-out-outline"></ion-icon>
-				</button>
-				<!--</div>-->
-				<!--
-					<div class="btn-group">
-						<button
 							type="button"
 							class="btn btn-light"
 							id="btn-settings"
@@ -225,10 +169,14 @@
 							class="main-pos"
 							id="main-canvas"
 						></span>
-						<span
+						<canvas
 							class="main-pos"
 							id="main-background"
-						></span>
+						></canvas>
+						<canvas
+							class="misc-canvas"
+							id="image-base"
+						></canvas>
 						<svg
 							viewBox="0 0 1 1"
 							xmlns="http://www.w3.org/2000/svg"
@@ -641,7 +589,62 @@
 									role="tabpanel"
 									aria-labelledby="background-tab"
 								>
-									background
+									<input
+										type="file"
+										name="backgroundImageLoader"
+										id="backgroundImageLoader"
+										accept="image/png,image/jpeg"
+									/>
+									<button
+										type="button"
+										class="btn btn-light"
+										id="btn-back-remove"
+										title="Remove Background"
+									>
+										<ion-icon name="backspace-outline"></ion-icon>
+									</button>
+									<div class="btn-group">
+										<button
+											type="button"
+											class="btn btn-light"
+											id="btn-download"
+											title="Download"
+										>
+											<ion-icon name="download-outline"></ion-icon>
+										</button>
+										<button
+											type="button"
+											class="btn btn-light"
+											id="btn-upload"
+											title="Upload"
+										>
+											<ion-icon name="push-outline"></ion-icon>
+										</button>
+										<button
+											type="button"
+											class="btn btn-light"
+											id="btn-export"
+											title="Export"
+										>
+											<ion-icon name="log-out-outline"></ion-icon>
+										</button>
+									</div>
+									<input
+										class="color-picker-number-input"
+										type="number"
+										id="threshold-number"
+										min="0"
+										max="180"
+										value="30"
+									>
+									<button
+										type="button"
+										class="btn btn-light"
+										id="btn-back-add-points"
+										title="Place Points on Background"
+									>
+										<ion-icon name="backspace-outline"></ion-icon>
+									</button>
 								</div>
 							</div>
 						</div>
