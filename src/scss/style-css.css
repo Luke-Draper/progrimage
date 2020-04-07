@@ -9,6 +9,7 @@ html {
 #left-right-cover {
 	width: max(790px, calc(max(100vw, 100vh) - 50px));
 	height: max(820px, calc(100vh - 60px));
+	left: calc(calc(min(100vw, 100vh) - 830px) / 2);
 }
 
 #overflow-disabler {

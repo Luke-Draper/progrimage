@@ -127,30 +127,6 @@
 						</div>
 					</div>
 				</div>
-				<!--
-					<div class="btn-group">
-						<button
-							type="button"
-							class="btn btn-light"
-							id="btn-settings"
-							title="Settings"
-						>
-							<ion-icon name="settings-outline"></ion-icon>
-						</button>
-						<button
-							class="btn btn-light dropdown-toggle"
-							type="button"
-							title="Functions"
-							data-toggle="dropdown"
-						>
-							<ion-icon name="terminal-outline"></ion-icon>
-						</button>
-						<div class="dropdown-menu" aria-labelledby="dLabel">
-							<button class="dropdown-item" type="button">Delaunay</button>
-							<button class="dropdown-item" type="button">Voronoi</button>
-							<button class="dropdown-item" type="button">Circuit</button>
-						</div>
-					</div>-->
 			</div>
 		</nav>
 
@@ -629,14 +605,6 @@
 											<ion-icon name="log-out-outline"></ion-icon>
 										</button>
 									</div>
-									<input
-										class="color-picker-number-input"
-										type="number"
-										id="threshold-number"
-										min="0"
-										max="180"
-										value="30"
-									>
 									<button
 										type="button"
 										class="btn btn-light"
@@ -645,14 +613,19 @@
 									>
 										<ion-icon name="backspace-outline"></ion-icon>
 									</button>
+									<input
+										id="use-background-color-check"
+										type="checkbox"
+										checked
+									/>
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-			<div id="left-right-cover"></div>
 		</div>
+		<div id="left-right-cover"></div>
 	</div>
 
 	<script

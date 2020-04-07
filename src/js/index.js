@@ -35,7 +35,7 @@ const editTypeIcons = [
 	iconEditTypeAll,
 	iconEditTypePoints,
 	iconEditTypeLines,
-	iconEditTypeFaces
+	iconEditTypeFaces,
 ];
 
 const btnUndo = d3.select("#btn-undo");
@@ -53,6 +53,7 @@ const btnFacesVis = d3.select("#btn-faces-vis");
 
 const mainSVG = d3.select("#main-svg");
 const miniDisplaySVG = d3.select("#mini-display-svg");
+const useBackgroundColorCheck = d3.select("#use-background-color-check");
 
 const tabSidebarBackground = d3.select("#tab-sidebar-background");
 const thresholdNumber = d3.select("#threshold-number");
@@ -72,7 +73,7 @@ const btnTabs = [
 	d3.select("#line-tab"),
 	d3.select("#face-tab"),
 	d3.select("#layer-tab"),
-	d3.select("#background-tab")
+	d3.select("#background-tab"),
 ];
 
 const btnTabContents = [
@@ -80,7 +81,7 @@ const btnTabContents = [
 	d3.select("#line-tab-content"),
 	d3.select("#face-tab-content"),
 	d3.select("#layer-tab-content"),
-	d3.select("#background-tab-content")
+	d3.select("#background-tab-content"),
 ];
 
 const pointRadiusNumber = d3.select("#point-radius-number");
@@ -128,9 +129,23 @@ const zoomFactor = 1.25;
 var undoHistoryIndex = 0;
 var undoHistory = [];
 
+var svgData = {
+	points: [],
+	lines: [],
+	faces: [],
+	layers: [],
+};
+var stepList = ["0000000000000000"];
+var currentStepIndex = 0;
+var currentStepID = 0;
+
+function getCurrentStepID() {
+	return stepList[currentStepIndex];
+}
+
 var zoom;
 
-var currentLayer = "Layer1";
+var currentLayer;
 var redrawLayers = true;
 
 var idAccumulator = 0;
@@ -138,6 +153,8 @@ var initial = null;
 
 var threshold = 5;
 var downCoord = { x: -1, y: -1 };
+
+var rawimgData = false;
 
 var keydown = " ";
 
@@ -183,9 +200,168 @@ var lineOtherEdited = false;
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
-class SVGCanvasElement {
-	constructor(id, color = "rgba(0,0,0,1)", layer = currentLayer) {
+class Element {
+	constructor(id) {
 		this.id = id;
+		this.createdAt = getCurrentStepID();
+		this.history = [];
+		this.removed = false;
+		this.removedAt = null;
+	}
+
+	setProperty(property, value) {
+		var oldVal = this[property];
+		this[property] = value;
+		var historyIndex = -1;
+		var currentStep = getCurrentStepID();
+		for (var i = 0; i < this.history.length; i++) {
+			if (this.history[i].step == currentStep) {
+				historyIndex = i;
+				break;
+			}
+		}
+		var historyStep = { step: currentStep, changes: [] };
+		if (historyIndex >= 0) {
+			historyStep = this.history[historyIndex];
+		}
+		var changeIndex = -1;
+		for (var i = 0; i < historyStep.changes.length; i++) {
+			if (historyStep.changes[i].property == property) {
+				changeIndex = i;
+				break;
+			}
+		}
+		if (changeIndex >= 0) {
+			historyStep.changes[changeIndex] = {
+				property: property,
+				oldVal: oldVal,
+				newVal: value,
+			};
+		} else {
+			historyStep.changes.push({
+				property: property,
+				oldVal: oldVal,
+				newVal: value,
+			});
+		}
+		if (historyIndex >= 0) {
+			this.history[historyIndex] = historyStep;
+		} else {
+			this.history.push(historyStep);
+		}
+	}
+
+	undoStep(step) {
+		if (this.removedAt == step) {
+			this.removed = false;
+		}
+		if (this.createdAt == step) {
+			this.removed = true;
+		}
+		var historyIndex = -1;
+		for (var i = 0; i < this.history.length; i++) {
+			if (this.history[i].step == step) {
+				historyIndex = i;
+				break;
+			}
+		}
+		if (historyIndex >= 0) {
+			for (var i = 0; i < this.history[historyIndex].changes.length; i++) {
+				this[this.history[historyIndex].changes[i].property] = this.history[
+					historyIndex
+				].changes[i].oldVal;
+			}
+		}
+	}
+
+	redoStep(step) {
+		if (this.removedAt == step) {
+			this.removed = true;
+		}
+		if (this.createdAt == step) {
+			this.removed = false;
+		}
+		var historyIndex = -1;
+		for (var i = 0; i < this.history.length; i++) {
+			if (this.history[i].step == step) {
+				historyIndex = i;
+				break;
+			}
+		}
+		if (historyIndex >= 0) {
+			for (var i = 0; i < this.history[historyIndex].changes.length; i++) {
+				this[this.history[historyIndex].changes[i].property] = this.history[
+					historyIndex
+				].changes[i].newVal;
+			}
+		}
+	}
+
+	remove() {
+		this.removed = true;
+		this.removedAt = getCurrentStepID();
+	}
+}
+
+class Layer extends Element {
+	constructor(id, name) {
+		super(id);
+		this.name = name;
+		this.visible = true;
+	}
+
+	createLayerHTML() {
+		if (this.removed || !this.visible) {
+			return "";
+		}
+		var active = false;
+		if (this.id == currentLayer) {
+			active = true;
+		}
+		return `
+<li
+	id="${this.id}"
+	class="layer-list-item ${active ? " active-layer" : ""}"
+>
+	<ion-icon
+		name="swap-vertical"
+		class="layer-list-move-icon"
+	></ion-icon>
+	<input
+		class="layer-list-name"
+		type="text"
+		value="${this.name}"
+	>
+	<div class="btn-group btn-layer-group">
+		<button
+			type="button"
+			class="btn btn-light btn-layer-group-inside btn-layer-visibility"
+			title="Toggle Layer Visibility"
+		>
+			<ion-icon name="eye${this.visible ? "" : "-off"}-outline"></ion-icon>
+		</button>
+		<button
+			type="button"
+			class="btn btn-light btn-layer-group-inside btn-layer-move"
+			title="Move Selection to Layer"
+		>
+			<ion-icon name="analytics-outline"></ion-icon>
+		</button><button
+			type="button"
+			class="btn btn-light btn-layer-group-inside btn-layer-delete"
+			title="Delete Layer"
+		>
+			<ion-icon name="trash-outline"></ion-icon>
+		</button>
+	</div>
+</li>
+`;
+	}
+}
+
+class SVGCanvasElement extends Element {
+	constructor(id, color = "rgba(0,0,0,1)", layer = currentLayer) {
+		super(id);
 		this.color = color;
 		this.layer = layer;
 	}
@@ -249,6 +425,9 @@ class Point extends SVGCanvasElement {
 		this.y = y;
 		this.radius = radius;
 		this.selected = selected;
+		if (useBackgroundColorCheck.property("checked") && rawimgData) {
+			this.color = getColorAt({ x: x, y: y });
+		}
 	}
 
 	isSelected() {
@@ -280,13 +459,12 @@ class Point extends SVGCanvasElement {
 	}
 
 	svgCanvas() {
-		if (!visiblePoints) {
+		if (!visiblePoints || this.removed) {
 			return "";
 		}
 		var selectAttributes = "";
 		if (this.isSelected()) {
 			var stroke = this.radius / 5;
-			var dash = stroke / 3;
 			selectAttributes = ` stroke="#ff873d" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="0.00001,${stroke}"`;
 		} else {
 			selectAttributes = ' stroke="rgba" stroke-width="0"';
@@ -301,6 +479,9 @@ class Point extends SVGCanvasElement {
 	}
 
 	svgBasic() {
+		if (!visiblePoints || this.removed) {
+			return "";
+		}
 		var color = "rgba(0,128,0,1)";
 		if (this.isSelected()) {
 			color = "#ff873d";
@@ -309,6 +490,9 @@ class Point extends SVGCanvasElement {
 	}
 
 	svgExport() {
+		if (!visiblePoints || this.removed) {
+			return "";
+		}
 		return `<circle cx="${this.x}" cy="${this.y}" r="${this.radius}" fill="${this.color}"/>`;
 	}
 }
@@ -319,13 +503,18 @@ class Line extends SVGCanvasElement {
 		point1ID,
 		point2ID,
 		strokeWidth = 0.005,
-		color = "rgba(0,255,0,1)",
+		color = "rgba(0,0,0,0.7)",
 		layer = currentLayer
 	) {
 		super(id, color, layer);
 		this.point1ID = point1ID;
 		this.point2ID = point2ID;
 		this.strokeWidth = strokeWidth;
+		if (useBackgroundColorCheck.property("checked") && rawimgData) {
+			var p1 = getByID(this.point1ID);
+			var p2 = getByID(this.point2ID);
+			this.color = getColorAt({ x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 });
+		}
 	}
 
 	isSelected() {
@@ -358,7 +547,7 @@ class Line extends SVGCanvasElement {
 	}
 
 	svgCanvas() {
-		if (!visibleLines) {
+		if (!visibleLines || this.removed) {
 			return "";
 		}
 		var selectAttributes = `stroke="${this.color}" stroke-linecap="round"`;
@@ -387,6 +576,9 @@ class Line extends SVGCanvasElement {
 	}
 
 	svgBasic() {
+		if (!visibleLines || this.removed) {
+			return "";
+		}
 		var color = "rgba(0,128,0,0.4)";
 		if (this.isSelected()) {
 			color = `rgba(255,135,61,0.7)" stroke-dasharray="0.00001,0.0083333`;
@@ -399,6 +591,9 @@ class Line extends SVGCanvasElement {
 	}
 
 	svgExport() {
+		if (!visibleLines || this.removed) {
+			return "";
+		}
 		return `<line x1="${getByID(this.point1ID).x}" y1="${
 			getByID(this.point1ID).y
 		}" x2="${getByID(this.point2ID).x}" y2="${
@@ -415,13 +610,22 @@ class Face extends SVGCanvasElement {
 		point1ID,
 		point2ID,
 		point3ID,
-		color = "rgba(0,0,0,0.5)",
+		color = "rgba(0,0,0,0.3)",
 		layer = currentLayer
 	) {
 		super(id, color, layer);
 		this.point1ID = point1ID;
 		this.point2ID = point2ID;
 		this.point3ID = point3ID;
+		if (useBackgroundColorCheck.property("checked") && rawimgData) {
+			var p1 = getByID(this.point1ID);
+			var p2 = getByID(this.point2ID);
+			var p3 = getByID(this.point3ID);
+			this.color = getColorAt({
+				x: (p1.x + p2.x + p3.x) / 3,
+				y: (p1.y + p2.y + p3.y) / 3,
+			});
+		}
 	}
 
 	isSelected() {
@@ -461,7 +665,7 @@ class Face extends SVGCanvasElement {
 	}
 
 	svgCanvas() {
-		if (!visibleFaces) {
+		if (!visibleFaces || this.removed) {
 			return "";
 		}
 		var selectAttributes = "";
@@ -519,6 +723,9 @@ class Face extends SVGCanvasElement {
 	}
 
 	svgBasic() {
+		if (!visibleFaces || this.removed) {
+			return "";
+		}
 		var color = "rgba(0,128,128,0.2)";
 		if (
 			getByID(this.point1ID).isSelected() &&
@@ -535,6 +742,9 @@ class Face extends SVGCanvasElement {
 	}
 
 	svgExport() {
+		if (!visibleFaces || this.removed) {
+			return "";
+		}
 		return `<polygon points="${getByID(this.point1ID).svgFormat()} ${getByID(
 			this.point2ID
 		).svgFormat()} ${getByID(this.point3ID).svgFormat()}" fill="${
@@ -561,20 +771,46 @@ class Face extends SVGCanvasElement {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
-var btnUndoPress = function() {
+var btnUndoPress = function () {
 	keydown = "~";
-	if (undoHistoryIndex > 0) undoHistoryIndex--;
+	var undoId = getCurrentStepID();
+	for (var i = 0; i < svgData.points.length; i++) {
+		svgData.points[i].undoStep(undoId);
+	}
+	for (var i = 0; i < svgData.lines.length; i++) {
+		svgData.lines[i].undoStep(undoId);
+	}
+	for (var i = 0; i < svgData.faces.length; i++) {
+		svgData.faces[i].undoStep(undoId);
+	}
+	for (var i = 0; i < svgData.layers.length; i++) {
+		svgData.layers[i].undoStep(undoId);
+	}
+	currentStepIndex--;
 	redrawLayers = true;
 	draw();
 };
-var btnRedoPress = function() {
+var btnRedoPress = function () {
 	keydown = "~";
-	if (undoHistoryIndex < undoHistory.length) undoHistoryIndex++;
+	currentStepIndex++;
+	var redoId = getCurrentStepID();
+	for (var i = 0; i < svgData.points.length; i++) {
+		svgData.points[i].redoStep(redoId);
+	}
+	for (var i = 0; i < svgData.lines.length; i++) {
+		svgData.lines[i].redoStep(redoId);
+	}
+	for (var i = 0; i < svgData.faces.length; i++) {
+		svgData.faces[i].redoStep(redoId);
+	}
+	for (var i = 0; i < svgData.layers.length; i++) {
+		svgData.layers[i].redoStep(redoId);
+	}
 	redrawLayers = true;
 	draw();
 };
 
-var btnBackgroundVisPress = function() {
+var btnBackgroundVisPress = function () {
 	keydown = "~";
 	visibleBackground = !visibleBackground;
 	if (visibleBackground) {
@@ -585,7 +821,7 @@ var btnBackgroundVisPress = function() {
 		btnBackgroundVis.classed("btn-extra", true);
 	}
 };
-var btnPointsVisPress = function() {
+var btnPointsVisPress = function () {
 	keydown = "~";
 	visiblePoints = !visiblePoints;
 	if (visiblePoints) {
@@ -595,7 +831,7 @@ var btnPointsVisPress = function() {
 	}
 	draw();
 };
-var btnLinesVisPress = function() {
+var btnLinesVisPress = function () {
 	keydown = "~";
 	visibleLines = !visibleLines;
 	if (visibleLines) {
@@ -605,7 +841,7 @@ var btnLinesVisPress = function() {
 	}
 	draw();
 };
-var btnFacesVisPress = function() {
+var btnFacesVisPress = function () {
 	keydown = "~";
 	visibleFaces = !visibleFaces;
 	if (visibleFaces) {
@@ -616,24 +852,21 @@ var btnFacesVisPress = function() {
 	draw();
 };
 
-var btnZoomInPress = function() {
+var btnZoomInPress = function () {
 	keydown = "~";
 	zoom.scaleBy(mainSVG, zoomFactor);
 	mainSVG.call(zoom);
 };
-var btnZoomOutPress = function() {
+var btnZoomOutPress = function () {
 	keydown = "~";
 	zoom.scaleBy(mainSVG, 1 / zoomFactor);
 	mainSVG.call(zoom);
 };
-var btnZoomResetPress = function() {
-	mainSVG
-		.transition()
-		.duration(500)
-		.call(zoom.transform, d3.zoomIdentity);
+var btnZoomResetPress = function () {
+	mainSVG.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
 };
 
-var btnMiniDisplayPress = function() {
+var btnMiniDisplayPress = function () {
 	miniDisplayVisible = !miniDisplayVisible;
 	if (miniDisplayVisible) {
 		miniDisplay.style("display", "inherit");
@@ -648,16 +881,16 @@ var btnMiniDisplayPress = function() {
 	}
 };
 
-var btnTabPress = function() {
+var btnTabPress = function () {
 	var btn = d3.select(this);
-	btnTabs.forEach(function(btnOff) {
+	btnTabs.forEach(function (btnOff) {
 		btnOff.attr("aria-selected", "false");
 		btnOff.classed("active", false);
 	});
 	btn.attr("aria-selected", "true");
 	btn.classed("active", true);
 
-	btnTabContents.forEach(function(btnContent) {
+	btnTabContents.forEach(function (btnContent) {
 		btnContent.classed("active", false);
 	});
 	d3.select(`#${btn.attr("aria-controls")}`).classed("active", true);
@@ -681,10 +914,10 @@ var btnTabPress = function() {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
-var zoomStart = function() {
+var zoomStart = function () {
 	mainSVG.attr("cursor", "grabbing");
 };
-var zooming = function() {
+var zooming = function () {
 	mainSVG.mainGroup.attr("transform", d3.event.transform);
 	miniDisplaySVG.viewGroup.attr(
 		"transform",
@@ -705,20 +938,20 @@ var zooming = function() {
 	backgroundCanvas.style("width", `${brSect.x - tlSect.x}px`);
 	backgroundCanvas.style("height", `${brSect.y - tlSect.y}px`);
 };
-var zoomEnd = function() {
+var zoomEnd = function () {
 	mainSVG.attr("cursor", null);
 };
 
-var dragPointStart = function() {
+var dragPointStart = function () {
 	keydown = "~";
 	initial = {
 		x: d3.event.x,
-		y: d3.event.y
+		y: d3.event.y,
 	};
 
 	d3.selectAll(".svg-points").attr("cursor", "grabbing");
 };
-var dragPoint = function() {
+var dragPoint = function () {
 	var point = getByID(d3.select(this).attr("id"));
 	var offsetX = d3.event.x - initial.x;
 	var offsetY = d3.event.y - initial.y;
@@ -730,7 +963,7 @@ var dragPoint = function() {
 		renderSVGOffset(offsetX, offsetY);
 	}
 };
-var dragPointEnd = function() {
+var dragPointEnd = function () {
 	keydown = "~";
 
 	var point = getByID(d3.select(this).attr("id"));
@@ -760,7 +993,7 @@ var dragPointEnd = function() {
 	draw();
 };
 
-var dragLineStart = function() {
+var dragLineStart = function () {
 	d3.selectAll(".svg-lines").attr("cursor", "grabbing");
 	var line = getByID(d3.select(this).attr("id"));
 	if (
@@ -775,11 +1008,11 @@ var dragLineStart = function() {
 	draw();
 	dragPointStart.call(d3.select(`#${line.point1ID}`).node());
 };
-var dragLine = function() {
+var dragLine = function () {
 	var line = getByID(d3.select(this).attr("id"));
 	dragPoint.call(d3.select(`#${line.point1ID}`).node());
 };
-var dragLineEnd = function() {
+var dragLineEnd = function () {
 	var line = getByID(d3.select(this).attr("id"));
 	d3.selectAll(".svg-lines").attr("cursor", "grab");
 	dragPointEnd.call(d3.select(`#${line.point1ID}`).node());
@@ -799,7 +1032,7 @@ var dragLineEnd = function() {
 	draw();
 };
 
-var dragFaceStart = function() {
+var dragFaceStart = function () {
 	d3.selectAll(".svg-faces").attr("cursor", "grabbing");
 	var face = getByID(d3.select(this).attr("id"));
 	if (
@@ -814,11 +1047,11 @@ var dragFaceStart = function() {
 	draw();
 	dragPointStart.call(d3.select(`#${face.point1ID}`).node());
 };
-var dragFace = function() {
+var dragFace = function () {
 	var face = getByID(d3.select(this).attr("id"));
 	dragPoint.call(d3.select(`#${face.point1ID}`).node());
 };
-var dragFaceEnd = function() {
+var dragFaceEnd = function () {
 	var face = getByID(d3.select(this).attr("id"));
 	d3.selectAll(".svg-faces").attr("cursor", "grab");
 	dragPointEnd.call(d3.select(`#${face.point1ID}`).node());
@@ -838,7 +1071,7 @@ var dragFaceEnd = function() {
 	draw();
 };
 
-var boxSelectStart = function() {
+var boxSelectStart = function () {
 	keydown = "~";
 	if (d3.event.button == 0) {
 		initial = screenCoordsToSVG(d3.event.offsetX, d3.event.offsetY);
@@ -846,7 +1079,7 @@ var boxSelectStart = function() {
 	}
 };
 
-var boxSelecting = function() {
+var boxSelecting = function () {
 	if (boxSelectStarted && d3.event.buttons > 0) {
 		boxSelectOngoing = true;
 		var current = screenCoordsToSVG(d3.event.offsetX, d3.event.offsetY);
@@ -866,13 +1099,13 @@ var boxSelecting = function() {
 	}
 };
 
-var boxSelectEnd = function() {
+var boxSelectEnd = function () {
 	if (boxSelectOngoing) {
 		var current = screenCoordsToSVG(d3.event.offsetX, d3.event.offsetY);
 		if (
 			(initial.x - current.x) * (initial.x - current.x) +
 				(initial.y - current.y) * (initial.y - current.y) <
-			0.00001
+			0.0001
 		) {
 			addPoint();
 		} else {
@@ -896,14 +1129,14 @@ var boxSelectEnd = function() {
 			) {
 				deselectAll();
 			}
-			for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
+			for (var i = 0; i < svgData.points.length; i++) {
 				if (
-					undoHistory[undoHistoryIndex].points[i].x < maxX &&
-					undoHistory[undoHistoryIndex].points[i].x > minX &&
-					undoHistory[undoHistoryIndex].points[i].y < maxY &&
-					undoHistory[undoHistoryIndex].points[i].y > minY
+					svgData.points[i].x < maxX &&
+					svgData.points[i].x > minX &&
+					svgData.points[i].y < maxY &&
+					svgData.points[i].y > minY
 				) {
-					undoHistory[undoHistoryIndex].points[i].select();
+					svgData.points[i].select();
 				}
 			}
 			draw();
@@ -939,7 +1172,7 @@ function btnPointApplyUpdate() {
 	}
 }
 
-var btnPointApplyPress = function() {
+var btnPointApplyPress = function () {
 	applyToSelectedPoints(
 		pointColorPicker.color.rgbaString,
 		parseFloat(pointRadiusNumber.property("value"))
@@ -949,12 +1182,12 @@ var btnPointApplyPress = function() {
 	btnPointApplyUpdate();
 };
 
-var pointOtherChange = function() {
+var pointOtherChange = function () {
 	pointOtherEdited = true;
 	btnPointApplyUpdate();
 };
 
-var pointColorChange = function(color) {
+var pointColorChange = function (color) {
 	pointColorEdited = true;
 	pointHueNumber.property("value", color.hsva.h);
 	pointSaturationNumber.property("value", color.hsva.s);
@@ -963,7 +1196,7 @@ var pointColorChange = function(color) {
 	btnPointApplyUpdate();
 };
 
-var pointNumberChange = function() {
+var pointNumberChange = function () {
 	pointColorEdited = true;
 	if (
 		parseFloat(pointHueNumber.property("value")) >
@@ -1047,7 +1280,7 @@ var pointNumberChange = function() {
 		h: pointHueNumber.property("value"),
 		s: pointSaturationNumber.property("value"),
 		v: pointValueNumber.property("value"),
-		a: pointAlphaNumber.property("value")
+		a: pointAlphaNumber.property("value"),
 	};
 	btnPointApplyUpdate();
 };
@@ -1062,7 +1295,7 @@ function btnLineApplyUpdate() {
 	}
 }
 
-var btnLineApplyPress = function() {
+var btnLineApplyPress = function () {
 	applyToSelectedLines(
 		lineColorPicker.color.rgbaString,
 		parseFloat(lineWidthNumber.property("value"))
@@ -1072,12 +1305,12 @@ var btnLineApplyPress = function() {
 	btnLineApplyUpdate();
 };
 
-var lineOtherChange = function() {
+var lineOtherChange = function () {
 	lineOtherEdited = true;
 	btnLineApplyUpdate();
 };
 
-var lineColorChange = function(color) {
+var lineColorChange = function (color) {
 	lineColorEdited = true;
 	lineHueNumber.property("value", color.hsva.h);
 	lineSaturationNumber.property("value", color.hsva.s);
@@ -1086,7 +1319,7 @@ var lineColorChange = function(color) {
 	btnLineApplyUpdate();
 };
 
-var lineNumberChange = function() {
+var lineNumberChange = function () {
 	lineColorEdited = true;
 	if (
 		parseFloat(lineHueNumber.property("value")) >
@@ -1158,7 +1391,7 @@ var lineNumberChange = function() {
 		h: lineHueNumber.property("value"),
 		s: lineSaturationNumber.property("value"),
 		v: lineValueNumber.property("value"),
-		a: lineAlphaNumber.property("value")
+		a: lineAlphaNumber.property("value"),
 	};
 	btnLineApplyUpdate();
 };
@@ -1173,13 +1406,13 @@ function btnFaceApplyUpdate() {
 	}
 }
 
-var btnFaceApplyPress = function() {
+var btnFaceApplyPress = function () {
 	applyToSelectedFaces(faceColorPicker.color.rgbaString);
 	faceColorEdited = false;
 	btnFaceApplyUpdate();
 };
 
-var faceColorChange = function(color) {
+var faceColorChange = function (color) {
 	faceColorEdited = true;
 	faceHueNumber.property("value", color.hsva.h);
 	faceSaturationNumber.property("value", color.hsva.s);
@@ -1188,7 +1421,7 @@ var faceColorChange = function(color) {
 	btnFaceApplyUpdate();
 };
 
-var faceNumberChange = function() {
+var faceNumberChange = function () {
 	faceColorEdited = true;
 	if (
 		parseFloat(faceHueNumber.property("value")) >
@@ -1260,22 +1493,22 @@ var faceNumberChange = function() {
 		h: faceHueNumber.property("value"),
 		s: faceSaturationNumber.property("value"),
 		v: faceValueNumber.property("value"),
-		a: faceAlphaNumber.property("value")
+		a: faceAlphaNumber.property("value"),
 	};
 	btnFaceApplyUpdate();
 };
 
-var stopLayerSort = function(e, u) {
+var stopLayerSort = function (e, u) {
 	var layerListElement = $("#layer-sortable-list");
 	var draggedListItem = u.item;
 	var layerListItems = layerListElement.children();
 	var newListItemIds = [];
 	var orderChanged = false;
-	layerListItems.each(function(index) {
+	layerListItems.each(function (index) {
 		var elementId = $(this).attr("id");
 		newListItemIds.push(elementId);
-		if (!orderChanged && index < undoHistory[undoHistoryIndex].layers.length) {
-			if (undoHistory[undoHistoryIndex].layers[index].name != elementId) {
+		if (!orderChanged && index < svgData.layers.length) {
+			if (svgData.layers[index].id != elementId) {
 				orderChanged = true;
 			}
 		} else {
@@ -1287,149 +1520,111 @@ var stopLayerSort = function(e, u) {
 		$(".layer-list-item").removeClass("active-layer");
 		draggedListItem.addClass("active-layer");
 	} else {
-		operation(function(data) {
-			var newLayers = [];
+		stepOperation(function () {
 			for (var i = 0; i < newListItemIds.length; i++) {
 				var layerVisible = true;
-				for (var j = 0; j < data.layers.length; j++) {
-					if (data.layers[j].name == newListItemIds[i]) {
-						layerVisible = data.layers[j].visible;
+				for (var j = 0; j < svgData.layers.length; j++) {
+					if (svgData.layers[j].id == newListItemIds[i]) {
+						newLayers.push(svgData.layers[j]);
 						break;
 					}
 				}
-				newLayers.push({ name: newListItemIds[i], visible: layerVisible });
 			}
-			data.layers = newLayers;
-			return data;
+			for (var i = 0; i < svgData.layers.length; i++) {
+				if (svgData.layers[i].removed) {
+					newLayers.push(svgData.layers[i]);
+				}
+			}
+			svgData.layers = newLayers;
 		});
 	}
 };
 
-var selectLayer = function() {
+var selectLayer = function () {
 	$(".layer-list-item").removeClass("active-layer");
-	$(this)
-		.parent()
-		.addClass("active-layer");
-	currentLayer = $(this)
-		.parent()
-		.attr("id");
+	$(this).parent().addClass("active-layer");
+	currentLayer = $(this).parent().attr("id");
 };
 
-var deleteLayer = function() {
-	var layerId = $(this)
-		.parent()
-		.parent()
-		.attr("id");
-	operation(function(data) {
-		if (data.layers.length > 1) {
-			var newLayers = [];
-			for (var i = 0; i < data.layers.length; i++) {
-				if (data.layers[i].name != layerId) {
-					newLayers.push(data.layers[i]);
+var deleteLayer = function () {
+	var layerId = $(this).parent().parent().attr("id");
+	stepOperation(function () {
+		if (svgData.layers.length > 1) {
+			for (var i = 0; i < svgData.layers.length; i++) {
+				if (svgData.layers[i].id != layerId) {
+					svgData.layers[i].remove();
 				}
 			}
-			data.layers = newLayers;
 			redrawLayers = true;
 		}
-		return data;
 	});
 };
 
-var moveSelectionToLayer = function() {
-	var layerId = $(this)
-		.parent()
-		.parent()
-		.attr("id");
-	operation(function(data) {
-		data.points.forEach(function(point) {
+var moveSelectionToLayer = function () {
+	var layerId = $(this).parent().parent().attr("id");
+	stepOperation(function () {
+		svgData.points.forEach(function (point) {
 			if (point.isSelected()) {
 				point.layer = layerId;
 			}
 		});
-		data.lines.forEach(function(line) {
+		svgData.lines.forEach(function (line) {
 			if (line.isSelected()) {
 				line.layer = layerId;
 			}
 		});
-		data.faces.forEach(function(face) {
+		svgData.faces.forEach(function (face) {
 			if (face.isSelected()) {
 				face.layer = layerId;
 			}
 		});
-		return data;
 	});
 };
 
-var editLayerName = function() {
-	var layerId = $(this)
-		.parent()
-		.attr("id");
-	var newId = d3
-		.select(this)
-		.property("value")
-		.replace(/\s/g, "");
-	operation(function(data) {
-		data.points.forEach(function(point) {
-			if (point.layer == layerId) {
-				point.layer = newId;
-			}
-		});
-		data.lines.forEach(function(line) {
-			if (line.layer == layerId) {
-				line.layer = newId;
-			}
-		});
-		data.faces.forEach(function(face) {
-			if (face.layer == layerId) {
-				face.layer = newId;
-			}
-		});
-		data.layers.forEach(function(layer) {
-			if (layer.name == layerId) {
-				layer.name = newId;
+var editLayerName = function () {
+	var layerId = $(this).parent().attr("id");
+	var newName = d3.select(this).property("value").replace(/\s/g, "");
+	stepOperation(function () {
+		svgData.layers.forEach(function (layer) {
+			if (layer.id == layerId) {
+				layer.name = newName;
 			}
 		});
 		redrawLayers = true;
-		return data;
 	});
 };
 
-var toggleLayerVisibility = function() {
-	var layerId = $(this)
-		.parent()
-		.parent()
-		.attr("id");
-	operation(function(data) {
-		var newLayers = [];
-		for (var i = 0; i < data.layers.length; i++) {
-			if (data.layers[i].name == layerId) {
-				newLayers.push({
-					name: data.layers[i].name,
-					visible: !data.layers[i].visible
-				});
-			} else {
-				newLayers.push(data.layers[i]);
+var toggleLayerVisibility = function () {
+	var layerId = $(this).parent().parent().attr("id");
+	stepOperation(function () {
+		for (var i = 0; i < svgData.layers.length; i++) {
+			if (svgData.layers[i].id == layerId) {
+				svgData.layers[i].visible = !svgData.layers[i].visible;
 			}
 		}
-		data.layers = newLayers;
 		redrawLayers = true;
-		return data;
 	});
 };
 
-var addLayer = function() {
-	operation(function(data) {
+var addLayer = function () {
+	stepOperation(function () {
 		var nameNum = 1;
 		while (
-			data.layers.some(function(layer) {
+			svgData.layers.some(function (layer) {
 				return layer.name == `Layer${nameNum}`;
 			})
 		) {
 			nameNum++;
 		}
-		data.layers.unshift({ name: `Layer${nameNum}`, visible: true });
+		svgData.layers.unshift(
+			new Layer(
+				`r${new Date().getTime()}-${(idAccumulator++)
+					.toString()
+					.padStart(8, "0")}`,
+				`Layer${nameNum}`
+			)
+		);
 		redrawLayers = true;
-		return data;
 	});
 };
 
@@ -1451,14 +1646,14 @@ var addLayer = function() {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
-var downKey = function() {
+var downKey = function () {
 	if (d3.event.ctrlKey || d3.event.altKey) {
 		d3.event.preventDefault();
 	}
 	keydown = d3.event.key;
 };
 
-var upKey = function() {
+var upKey = function () {
 	if (d3.event.key == keydown) {
 		if (keydown == "z" || keydown == "Z") {
 			if (d3.event.ctrlKey) {
@@ -1512,12 +1707,12 @@ var upKey = function() {
 	}
 };
 
-var mouseMove = function() {
+var mouseMove = function () {
 	mouseClientCoords = { x: d3.event.clientX, y: d3.event.clientY };
 	mouseOffsetCoords = { x: d3.event.offsetX, y: d3.event.offsetY };
 };
 
-var uploadBackground = function() {
+var uploadBackground = function () {
 	if (this.files && this.files[0]) {
 		var backCanvas = backgroundCanvas.node();
 		var backCtx = backCanvas.getContext("2d");
@@ -1525,10 +1720,11 @@ var uploadBackground = function() {
 		var baseCanvas = imageBase.node();
 		var baseCtx = baseCanvas.getContext("2d");
 
+		rawimgData = true;
 		var reader = new FileReader();
-		reader.onload = function(e) {
+		reader.onload = function (e) {
 			var img = new Image();
-			img.onload = function() {
+			img.onload = function () {
 				if (img.width > img.height) {
 					backCanvas.width = img.width;
 					backCanvas.height = img.width;
@@ -1548,7 +1744,7 @@ var uploadBackground = function() {
 	}
 };
 
-var setupBackgroundPoints = function() {
+var setupBackgroundPoints = function () {
 	var baseCanvas = imageBase.node();
 	var baseCtx = baseCanvas.getContext("2d");
 	var imgData = baseCtx.getImageData(0, 0, baseCanvas.width, baseCanvas.height);
@@ -1566,15 +1762,18 @@ var setupBackgroundPoints = function() {
 		grayScale,
 		baseCanvas.width,
 		baseCanvas.height,
-		thresholdNumber.property("value")
+		10
 	);
-	console.log(cornerWeights);
-	console.log(baseCanvas.width);
-	console.log(baseCanvas.height);
-
-	operation(function(data) {
-		data.layers.push({ name: "setPoints", visible: true });
-		cornerWeights.forEach(function(weight) {
+	var finalPoints = sortThroughCorners(cornerWeights);
+	stepOperation(function () {
+		var outputLayer = new Layer(
+			`r${new Date().getTime()}-${(idAccumulator++)
+				.toString()
+				.padStart(8, "0")}`,
+			`setPoints`
+		);
+		svgData.layers.push(outputLayer);
+		finalPoints.forEach(function (weight) {
 			var id = `p${new Date().getTime()}-${(idAccumulator++)
 				.toString()
 				.padStart(8, "0")}`;
@@ -1583,11 +1782,10 @@ var setupBackgroundPoints = function() {
 			var pointColor = `rgb(${imgData.data[dataIndex]}, ${
 				imgData.data[dataIndex + 1]
 			}, ${imgData.data[dataIndex + 2]})`;
-			data.points.push(
-				new Point(id, xy.x, xy.y, 0.0015, pointColor, "setPoints", false)
+			svgData.points.push(
+				new Point(id, xy.x, xy.y, 0.0015, pointColor, outputLayer.id, false)
 			);
 		});
-		return data;
 	});
 };
 
@@ -1601,8 +1799,95 @@ function convertImageXYToSVG(xyCoords) {
 	}
 	return {
 		x: xyCoords.x / squareWidth,
-		y: xyCoords.y / squareWidth
+		y: xyCoords.y / squareWidth,
 	};
+}
+
+function convertSVGXYToImage(xyCoords) {
+	var baseCanvas = imageBase.node();
+	var squareWidth = Math.max(baseCanvas.height, baseCanvas.width);
+	xyCoords = {
+		x: parseInt(xyCoords.x * squareWidth),
+		y: parseInt(xyCoords.y * squareWidth),
+	};
+	if (baseCanvas.width > baseCanvas.height) {
+		xyCoords.y = xyCoords.y - (squareWidth - baseCanvas.height) / 2;
+	} else {
+		xyCoords.x = xyCoords.x - (squareWidth - baseCanvas.width) / 2;
+	}
+	return xyCoords;
+}
+
+function getColorAt(xyCoords) {
+	var baseCanvas = imageBase.node();
+	var baseCtx = baseCanvas.getContext("2d");
+	var imgData = baseCtx.getImageData(0, 0, baseCanvas.width, baseCanvas.height);
+	var coords = convertSVGXYToImage(xyCoords);
+	var dataIndex = (coords.x + coords.y * baseCanvas.width) * 4;
+	return `rgb(${imgData.data[dataIndex]}, ${imgData.data[dataIndex + 1]}, ${
+		imgData.data[dataIndex + 2]
+	})`;
+}
+
+function sortThroughCorners(weights) {
+	weights.sort(function (a, b) {
+		return b.score - a.score;
+	});
+	weights.forEach(function (a) {
+		a.visited = false;
+	});
+	var baseCanvas = imageBase.node();
+	var output = [];
+	var groups = [];
+	output.push({ x: baseCanvas.width, y: baseCanvas.height });
+	output.push({ x: baseCanvas.width, y: 0 });
+	output.push({ x: 0, y: baseCanvas.height });
+	output.push({ x: 0, y: 0 });
+	for (var i = 0; i < weights.length; i++) {
+		if (!weights[i].visited) {
+			weights[i].visited = true;
+			var group = [weights[i]];
+			for (var j = i; j < weights.length; j++) {
+				var accumulator = 0;
+				for (var k = 0; k < group.length; k++) {
+					if (
+						(!weights[j].visited &&
+							weights[j].x == group[k].x + 1 &&
+							weights[j].y == group[k].y + 1) ||
+						(weights[j].x == group[k].x + 1 &&
+							weights[j].y == group[k].y - 1) ||
+						(weights[j].x == group[k].x - 1 &&
+							weights[j].y == group[k].y + 1) ||
+						(weights[j].x == group[k].x - 1 && weights[j].y == group[k].y - 1)
+					) {
+						weights[i].visited = true;
+						group.push(weights[i]);
+						break;
+					}
+				}
+				for (var k = 0; k < group.length; k++) {
+					accumulator += group[k].score;
+				}
+				if (accumulator > 360) {
+					break;
+				}
+			}
+			groups.push(group);
+		}
+	}
+	for (var i = 0; i < groups.length; i++) {
+		var xAccumulator = 0;
+		var yAccumulator = 0;
+		for (var j = i; j < groups[i].length; j++) {
+			xAccumulator += groups[i][j].x;
+			yAccumulator += groups[i][j].y;
+		}
+		output.push({
+			x: xAccumulator / groups[i].length,
+			y: yAccumulator / groups[i].length,
+		});
+	}
+	return output;
 }
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
@@ -1623,102 +1908,26 @@ function convertImageXYToSVG(xyCoords) {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
-function operation(fn) {
-	undoHistory = undoHistory.slice(0, undoHistoryIndex + 1);
-	var newVersion = fn(duplicateData(undoHistory[undoHistoryIndex]));
-	setupNewData(newVersion);
-
-	undoHistory.push(newVersion);
-	undoHistoryIndex++;
-
+function stepOperation(fn) {
+	stepList = stepList.slice(0, currentStepIndex + 1);
+	currentStepIndex++;
+	currentStepID++;
+	stepList.push(currentStepID.toString().padStart(16, "0"));
+	fn();
 	draw();
-}
-
-function duplicateData(data) {
-	var newData = {
-		points: [],
-		lines: [],
-		faces: [],
-		layers: []
-	};
-
-	data.points.forEach(function(point) {
-		newData.points.push(
-			new Point(
-				point.id,
-				point.x,
-				point.y,
-				point.radius,
-				point.color,
-				point.layer,
-				point.selected
-			)
-		);
-	});
-
-	data.lines.forEach(function(line) {
-		newData.lines.push(
-			new Line(
-				line.id,
-				line.point1ID,
-				line.point2ID,
-				line.strokeWidth,
-				line.color,
-				line.layer
-			)
-		);
-	});
-
-	data.faces.forEach(function(face) {
-		newData.faces.push(
-			new Face(
-				face.id,
-				face.point1ID,
-				face.point2ID,
-				face.point3ID,
-				face.color,
-				face.layer
-			)
-		);
-	});
-
-	data.layers.forEach(function(layer) {
-		if (!newData.layers.includes(layer)) {
-			newData.layers.push(layer);
-		}
-	});
-
-	return newData;
-}
-
-function setupNewData(newData) {
-	newData.pointMap = new Map();
-	newData.lineMap = new Map();
-	newData.faceMap = new Map();
-
-	for (var i = 0; i < newData.points.length; i++) {
-		newData.pointMap.set(newData.points[i].id, i);
-	}
-
-	for (var i = 0; i < newData.lines.length; i++) {
-		newData.lineMap.set(newData.lines[i].id, i);
-	}
-
-	for (var i = 0; i < newData.faces.length; i++) {
-		newData.faceMap.set(newData.faces[i].id, i);
-	}
+	console.log(stepList);
 }
 
 function addPoint() {
-	operation(function(data) {
+	stepOperation(function () {
 		if (
 			!(
 				d3.event.shiftKey ||
 				(d3.event.sourceEvent && d3.event.sourceEvent.shiftKey)
 			)
 		) {
-			for (var i = 0; i < data.points.length; i++) {
-				data.points[i].deselect();
+			for (var i = 0; i < svgData.points.length; i++) {
+				svgData.points[i].deselect();
 			}
 		}
 
@@ -1728,160 +1937,103 @@ function addPoint() {
 		var coords = screenCoordsToSVG(mouseOffsetCoords.x, mouseOffsetCoords.y);
 		var newPoint = new Point(id, coords.x, coords.y);
 		newPoint.select();
-		data.points.push(newPoint);
-
-		return data;
+		svgData.points.push(newPoint);
 	});
 }
 
 function removeSelectedPoints() {
-	operation(function(data) {
-		var newPoints = [];
-		for (var i = 0; i < data.points.length; i++) {
-			if (!data.points[i].isSelected()) {
-				newPoints.push(data.points[i]);
+	stepOperation(function () {
+		for (var i = 0; i < svgData.lines.length; i++) {
+			if (svgData.lines[i].hasSelected()) {
+				svgData.lines[i].remove();
 			}
 		}
-
-		data.points = newPoints;
-
-		var newLines = [];
-		for (var i = 0; i < data.lines.length; i++) {
-			if (!data.lines[i].hasSelected()) {
-				newLines.push(data.lines[i]);
+		for (var i = 0; i < svgData.faces.length; i++) {
+			if (svgData.faces[i].hasSelected()) {
+				svgData.faces[i].remove();
 			}
 		}
-		data.lines = newLines;
-
-		var newFaces = [];
-		for (var i = 0; i < data.faces.length; i++) {
-			if (!data.faces[i].hasSelected()) {
-				newFaces.push(data.faces[i]);
+		for (var i = 0; i < svgData.points.length; i++) {
+			if (svgData.points[i].isSelected()) {
+				svgData.points[i].deselect();
+				svgData.points[i].remove();
 			}
 		}
-		data.faces = newFaces;
-
-		return data;
 	});
 }
 
 function moveSelected(offsetX, offsetY) {
-	operation(function(data) {
-		var newPoints = [];
-		for (var i = 0; i < data.points.length; i++) {
-			if (data.points[i].isSelected()) {
-				newPoints.push(
-					new Point(
-						data.points[i].id,
-						data.points[i].x + offsetX,
-						data.points[i].y + offsetY,
-						data.points[i].radius,
-						data.points[i].color,
-						data.points[i].layer,
-						data.points[i].selected
-					)
-				);
-			} else {
-				newPoints.push(data.points[i]);
+	stepOperation(function () {
+		for (var i = 0; i < svgData.points.length; i++) {
+			if (svgData.points[i].isSelected()) {
+				svgData.points[i].setProperty("x", svgData.points[i].x + offsetX);
+				svgData.points[i].setProperty("y", svgData.points[i].y + offsetY);
 			}
 		}
-		data.points = newPoints;
-		return data;
 	});
 }
 
 function applyToSelectedPoints(color, radius) {
-	operation(function(data) {
-		var newPoints = [];
+	stepOperation(function () {
 		var newColor = color;
 		var newRadius = radius;
-		for (var i = 0; i < data.points.length; i++) {
-			if (data.points[i].isSelected()) {
+		for (var i = 0; i < svgData.points.length; i++) {
+			if (svgData.points[i].isSelected()) {
 				if (!pointColorEdited) {
-					newColor = data.points[i].color;
+					newColor = svgData.points[i].color;
 				}
 				if (!pointOtherEdited) {
-					newRadius = data.points[i].radius;
+					newRadius = svgData.points[i].radius;
 				}
-				newPoints.push(
-					new Point(
-						data.points[i].id,
-						data.points[i].x,
-						data.points[i].y,
-						newRadius,
-						newColor,
-						data.points[i].layer,
-						data.points[i].selected
-					)
-				);
-			} else {
-				newPoints.push(data.points[i]);
+				svgData.points[i].setProperty("radius", newRadius);
+				svgData.points[i].setProperty("color", newColor);
 			}
 		}
 		pointColorChange({ hsva: { h: 0, s: 0, v: 0, a: 1 } });
 		pointNumberChange();
-		data.points = newPoints;
-		return data;
 	});
 }
 
 function addDelaunayLines() {
-	operation(function(data) {
+	stepOperation(function () {
 		var lines = delaunayLines(getSelectedPoints());
 		for (var i = 0; i < lines.length; i++) {
-			data.lines.push(lines[i]);
+			svgData.lines.push(lines[i]);
 		}
-		return data;
 	});
 }
 function removeSelectedLines() {
-	operation(function(data) {
-		var newLines = [];
-		for (var i = 0; i < data.lines.length; i++) {
-			if (!data.lines[i].isSelected()) {
-				newLines.push(data.lines[i]);
+	stepOperation(function () {
+		for (var i = 0; i < svgData.lines.length; i++) {
+			if (svgData.lines[i].isSelected()) {
+				svgData.lines[i].remove();
 			}
 		}
-		data.lines = newLines;
-		return data;
 	});
 }
 function applyToSelectedLines(color, width) {
-	operation(function(data) {
-		var newLines = [];
+	stepOperation(function () {
 		var newColor = color;
 		var newWidth = width;
-		for (var i = 0; i < data.lines.length; i++) {
-			if (data.lines[i].isSelected()) {
+		for (var i = 0; i < svgData.lines.length; i++) {
+			if (svgData.lines[i].isSelected()) {
 				if (!lineColorEdited) {
-					newColor = data.lines[i].color;
+					newColor = svgData.lines[i].color;
 				}
 				if (!lineOtherEdited) {
-					newWidth = data.lines[i].strokeWidth;
+					newWidth = svgData.lines[i].strokeWidth;
 				}
-				newLines.push(
-					new Line(
-						data.lines[i].id,
-						data.lines[i].point1ID,
-						data.lines[i].point2ID,
-						newWidth,
-						newColor,
-						data.lines[i].layer
-					)
-				);
-			} else {
-				newLines.push(data.lines[i]);
+				svgData.lines[i].setProperty("strokeWidth", newRadius);
+				svgData.lines[i].setProperty("color", newColor);
 			}
 		}
 		lineColorChange({ hsva: { h: 0, s: 0, v: 0, a: 1 } });
 		lineNumberChange();
-		data.lines = newLines;
-		return data;
 	});
 }
 
 function addSelectedFaces() {
-	operation(function(data) {
+	stepOperation(function () {
 		var selectedLines = getSelectedLines();
 
 		for (var i = 0; i < selectedLines.length - 2; i++) {
@@ -1923,54 +2075,35 @@ function addSelectedFaces() {
 							.toString()
 							.padStart(8, "0")}`;
 
-						data.faces.push(new Face(id, p1, p2, p3));
+						svgData.faces.push(new Face(id, p1, p2, p3));
 					}
 				}
 			}
 		}
-
-		return data;
 	});
 }
 function removeSelectedFaces() {
-	operation(function(data) {
-		var newFaces = [];
-		for (var i = 0; i < data.faces.length; i++) {
-			if (!data.faces[i].isSelected()) {
-				newFaces.push(data.faces[i]);
+	stepOperation(function () {
+		for (var i = 0; i < svgData.faces.length; i++) {
+			if (svgData.faces[i].isSelected()) {
+				svgData.faces[i].remove();
 			}
 		}
-		data.faces = newFaces;
-		return data;
 	});
 }
 function applyToSelectedFaces(color) {
-	operation(function(data) {
-		var newFaces = [];
+	stepOperation(function () {
 		var newColor = color;
-		for (var i = 0; i < data.faces.length; i++) {
-			if (data.faces[i].isSelected()) {
+		for (var i = 0; i < svgData.faces.length; i++) {
+			if (svgData.faces[i].isSelected()) {
 				if (!faceColorEdited) {
-					newColor = data.faces[i].color;
+					newColor = svgData.faces[i].color;
 				}
-				newFaces.push(
-					new Face(
-						data.faces[i].id,
-						data.faces[i].point1ID,
-						data.faces[i].point2ID,
-						data.faces[i].point3ID,
-						newColor,
-						data.faces[i].layer
-					)
-				);
-			} else {
-				newFaces.push(data.faces[i]);
+				svgData.faces[i].setProperty("color", newColor);
 			}
 		}
 		faceColorChange({ hsva: { h: 0, s: 0, v: 0, a: 1 } });
 		faceNumberChange();
-		data.faces = newFaces;
-		return data;
 	});
 }
 
@@ -1994,9 +2127,9 @@ function applyToSelectedFaces(color) {
 
 function getSelectedPoints() {
 	var selectedPoints = [];
-	for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
-		if (undoHistory[undoHistoryIndex].points[i].isSelected()) {
-			selectedPoints.push(undoHistory[undoHistoryIndex].points[i]);
+	for (var i = 0; i < svgData.points.length; i++) {
+		if (svgData.points[i].isSelected()) {
+			selectedPoints.push(svgData.points[i]);
 		}
 	}
 	return selectedPoints;
@@ -2004,9 +2137,9 @@ function getSelectedPoints() {
 
 function getSelectedLines() {
 	var selectedLines = [];
-	for (var i = 0; i < undoHistory[undoHistoryIndex].lines.length; i++) {
-		if (undoHistory[undoHistoryIndex].lines[i].isSelected()) {
-			selectedLines.push(undoHistory[undoHistoryIndex].lines[i]);
+	for (var i = 0; i < svgData.lines.length; i++) {
+		if (svgData.lines[i].isSelected()) {
+			selectedLines.push(svgData.lines[i]);
 		}
 	}
 	return selectedLines;
@@ -2014,9 +2147,9 @@ function getSelectedLines() {
 
 function getSelectedFaces() {
 	var selectedFaces = [];
-	for (var i = 0; i < undoHistory[undoHistoryIndex].faces.length; i++) {
-		if (undoHistory[undoHistoryIndex].faces[i].isSelected()) {
-			selectedFaces.push(undoHistory[undoHistoryIndex].faces[i]);
+	for (var i = 0; i < svgData.faces.length; i++) {
+		if (svgData.faces[i].isSelected()) {
+			selectedFaces.push(svgData.faces[i]);
 		}
 	}
 	return selectedFaces;
@@ -2024,12 +2157,12 @@ function getSelectedFaces() {
 
 function lineExists(point1ID, point2ID) {
 	var output = false;
-	for (var i = 0; i < undoHistory[undoHistoryIndex].lines.length; i++) {
+	for (var i = 0; i < svgData.lines.length; i++) {
 		if (
-			(undoHistory[undoHistoryIndex].lines[i].point1ID == point1ID &&
-				undoHistory[undoHistoryIndex].lines[i].point2ID == point2ID) ||
-			(undoHistory[undoHistoryIndex].lines[i].point1ID == point2ID &&
-				undoHistory[undoHistoryIndex].lines[i].point2ID == point1ID)
+			(svgData.lines[i].point1ID == point1ID &&
+				svgData.lines[i].point2ID == point2ID) ||
+			(svgData.lines[i].point1ID == point2ID &&
+				svgData.lines[i].point2ID == point1ID)
 		) {
 			output = true;
 			break;
@@ -2040,26 +2173,26 @@ function lineExists(point1ID, point2ID) {
 
 function faceExists(point1ID, point2ID, point3ID) {
 	var output = false;
-	for (var i = 0; i < undoHistory[undoHistoryIndex].faces.length; i++) {
+	for (var i = 0; i < svgData.faces.length; i++) {
 		if (
-			(undoHistory[undoHistoryIndex].lines[i].point1ID == point1ID &&
-				undoHistory[undoHistoryIndex].lines[i].point2ID == point2ID &&
-				undoHistory[undoHistoryIndex].lines[i].point3ID == point3ID) ||
-			(undoHistory[undoHistoryIndex].lines[i].point1ID == point1ID &&
-				undoHistory[undoHistoryIndex].lines[i].point2ID == point3ID &&
-				undoHistory[undoHistoryIndex].lines[i].point3ID == point2ID) ||
-			(undoHistory[undoHistoryIndex].lines[i].point1ID == point2ID &&
-				undoHistory[undoHistoryIndex].lines[i].point2ID == point1ID &&
-				undoHistory[undoHistoryIndex].lines[i].point3ID == point3ID) ||
-			(undoHistory[undoHistoryIndex].lines[i].point1ID == point2ID &&
-				undoHistory[undoHistoryIndex].lines[i].point2ID == point3ID &&
-				undoHistory[undoHistoryIndex].lines[i].point3ID == point1ID) ||
-			(undoHistory[undoHistoryIndex].lines[i].point1ID == point3ID &&
-				undoHistory[undoHistoryIndex].lines[i].point2ID == point1ID &&
-				undoHistory[undoHistoryIndex].lines[i].point3ID == point2ID) ||
-			(undoHistory[undoHistoryIndex].lines[i].point1ID == point3ID &&
-				undoHistory[undoHistoryIndex].lines[i].point2ID == point2ID &&
-				undoHistory[undoHistoryIndex].lines[i].point3ID == point1ID)
+			(svgData.lines[i].point1ID == point1ID &&
+				svgData.lines[i].point2ID == point2ID &&
+				svgData.lines[i].point3ID == point3ID) ||
+			(svgData.lines[i].point1ID == point1ID &&
+				svgData.lines[i].point2ID == point3ID &&
+				svgData.lines[i].point3ID == point2ID) ||
+			(svgData.lines[i].point1ID == point2ID &&
+				svgData.lines[i].point2ID == point1ID &&
+				svgData.lines[i].point3ID == point3ID) ||
+			(svgData.lines[i].point1ID == point2ID &&
+				svgData.lines[i].point2ID == point3ID &&
+				svgData.lines[i].point3ID == point1ID) ||
+			(svgData.lines[i].point1ID == point3ID &&
+				svgData.lines[i].point2ID == point1ID &&
+				svgData.lines[i].point3ID == point2ID) ||
+			(svgData.lines[i].point1ID == point3ID &&
+				svgData.lines[i].point2ID == point2ID &&
+				svgData.lines[i].point3ID == point1ID)
 		) {
 			output = true;
 			break;
@@ -2069,9 +2202,9 @@ function faceExists(point1ID, point2ID, point3ID) {
 }
 
 function deselectAll() {
-	for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
-		if (undoHistory[undoHistoryIndex].points[i].hasSelected()) {
-			undoHistory[undoHistoryIndex].points[i].deselect();
+	for (var i = 0; i < svgData.points.length; i++) {
+		if (svgData.points[i].hasSelected()) {
+			svgData.points[i].deselect();
 		}
 	}
 }
@@ -2158,30 +2291,27 @@ function delaunayLines(pointArray) {
 
 function getByID(id) {
 	if (id.startsWith("f")) {
-		return getInternalByID(
-			undoHistory[undoHistoryIndex].faces,
-			undoHistory[undoHistoryIndex].faceMap,
-			id
-		);
+		return getInternalByID(svgData.faces, id);
 	} else if (id.startsWith("l")) {
-		return getInternalByID(
-			undoHistory[undoHistoryIndex].lines,
-			undoHistory[undoHistoryIndex].lineMap,
-			id
-		);
+		return getInternalByID(svgData.lines, id);
 	} else if (id.startsWith("p")) {
-		return getInternalByID(
-			undoHistory[undoHistoryIndex].points,
-			undoHistory[undoHistoryIndex].pointMap,
-			id
-		);
+		return getInternalByID(svgData.points, id);
+	} else if (id.startsWith("r")) {
+		return getInternalByID(svgData.layers, id);
 	} else {
 		return null;
 	}
 }
 
-function getInternalByID(dataArray, dataMap, id) {
-	return dataArray[dataMap.get(id)];
+function getInternalByID(dataArray, id) {
+	var output = null;
+	for (var i = 0; i < dataArray.length; i++) {
+		if (dataArray[i].id == id) {
+			output = dataArray[i];
+			break;
+		}
+	}
+	return output;
 }
 
 function screenCoordsToSVG(offsetX, offsetY) {
@@ -2194,7 +2324,7 @@ function screenCoordsToSVG(offsetX, offsetY) {
 
 	return {
 		x: (offsetX / w - trans.x) / trans.k,
-		y: (offsetY / h - trans.y) / trans.k
+		y: (offsetY / h - trans.y) / trans.k,
 	};
 }
 
@@ -2214,8 +2344,8 @@ function createColorPicker(id) {
 			{
 				component: iro.ui.Box,
 				options: {
-					width: 170
-				}
+					width: 170,
+				},
 			},
 			{
 				component: iro.ui.Slider,
@@ -2224,8 +2354,8 @@ function createColorPicker(id) {
 					sliderMargin: 4,
 					padding: 4,
 					handleRadius: 4,
-					sliderType: "hue"
-				}
+					sliderType: "hue",
+				},
 			},
 			{
 				component: iro.ui.Slider,
@@ -2234,8 +2364,8 @@ function createColorPicker(id) {
 					sliderMargin: 4,
 					padding: 4,
 					handleRadius: 4,
-					sliderType: "saturation"
-				}
+					sliderType: "saturation",
+				},
 			},
 			{
 				component: iro.ui.Slider,
@@ -2244,8 +2374,8 @@ function createColorPicker(id) {
 					sliderMargin: 4,
 					padding: 4,
 					handleRadius: 4,
-					sliderType: "value"
-				}
+					sliderType: "value",
+				},
 			},
 			{
 				component: iro.ui.Slider,
@@ -2254,11 +2384,11 @@ function createColorPicker(id) {
 					sliderMargin: 4,
 					padding: 4,
 					handleRadius: 4,
-					sliderType: "alpha"
-				}
-			}
+					sliderType: "alpha",
+				},
+			},
 		],
-		color: "#000"
+		color: "#000",
 	});
 }
 
@@ -2289,27 +2419,27 @@ function draw() {
 	var canvasHTML = "";
 	var basicHTML = "";
 
-	undoHistory[undoHistoryIndex].layers
+	svgData.layers
 		.slice()
 		.reverse()
-		.forEach(function(layer) {
+		.forEach(function (layer) {
 			if (layer.visible) {
-				undoHistory[undoHistoryIndex].faces.forEach(function(face) {
-					if (face.layer == layer.name) {
+				svgData.faces.forEach(function (face) {
+					if (face.layer == layer.id) {
 						canvasHTML = canvasHTML.concat(face.svgCanvas());
 						basicHTML = basicHTML.concat(face.svgBasic());
 					}
 				});
 
-				undoHistory[undoHistoryIndex].lines.forEach(function(line) {
-					if (line.layer == layer.name) {
+				svgData.lines.forEach(function (line) {
+					if (line.layer == layer.id) {
 						canvasHTML = canvasHTML.concat(line.svgCanvas());
 						basicHTML = basicHTML.concat(line.svgBasic());
 					}
 				});
 
-				undoHistory[undoHistoryIndex].points.forEach(function(point) {
-					if (point.layer == layer.name) {
+				svgData.points.forEach(function (point) {
+					if (point.layer == layer.id) {
 						canvasHTML = canvasHTML.concat(point.svgCanvas());
 						basicHTML = basicHTML.concat(point.svgBasic());
 					}
@@ -2323,7 +2453,7 @@ function draw() {
 	d3.selectAll(".svg-points").call(
 		d3
 			.drag()
-			.filter(function() {
+			.filter(function () {
 				return !d3.event.ctrlKey && !d3.event.button;
 			})
 			.on("start", dragPointStart)
@@ -2334,7 +2464,7 @@ function draw() {
 	d3.selectAll(".svg-lines").call(
 		d3
 			.drag()
-			.filter(function() {
+			.filter(function () {
 				return !d3.event.ctrlKey && !d3.event.button;
 			})
 			.on("start", dragLineStart)
@@ -2345,7 +2475,7 @@ function draw() {
 	d3.selectAll(".svg-faces").call(
 		d3
 			.drag()
-			.filter(function() {
+			.filter(function () {
 				return !d3.event.ctrlKey && !d3.event.button;
 			})
 			.on("start", dragFaceStart)
@@ -2353,94 +2483,45 @@ function draw() {
 			.on("end", dragFaceEnd)
 	);
 
-	btnUndo.classed("btn-extra", undoHistoryIndex != 0 ? false : true);
+	btnUndo.classed("btn-extra", currentStepIndex > 1 ? false : true);
 	btnRedo.classed(
 		"btn-extra",
-		undoHistoryIndex !== undoHistory.length - 1 ? false : true
+		currentStepIndex !== stepList.length - 1 ? false : true
 	);
 }
 
 function renderSVGOffset(offsetX, offsetY) {
-	for (var i = 0; i < undoHistory[undoHistoryIndex].points.length; i++) {
-		if (undoHistory[undoHistoryIndex].points[i].hasSelected()) {
-			undoHistory[undoHistoryIndex].points[i].svgOffset(offsetX, offsetY);
+	for (var i = 0; i < svgData.points.length; i++) {
+		if (svgData.points[i].hasSelected()) {
+			svgData.points[i].svgOffset(offsetX, offsetY);
 		}
 	}
-	for (var i = 0; i < undoHistory[undoHistoryIndex].lines.length; i++) {
-		if (undoHistory[undoHistoryIndex].lines[i].hasSelected()) {
-			undoHistory[undoHistoryIndex].lines[i].svgOffset(offsetX, offsetY);
+	for (var i = 0; i < svgData.lines.length; i++) {
+		if (svgData.lines[i].hasSelected()) {
+			svgData.lines[i].svgOffset(offsetX, offsetY);
 		}
 	}
-	for (var i = 0; i < undoHistory[undoHistoryIndex].faces.length; i++) {
-		if (undoHistory[undoHistoryIndex].faces[i].hasSelected()) {
-			undoHistory[undoHistoryIndex].faces[i].svgOffset(offsetX, offsetY);
+	for (var i = 0; i < svgData.faces.length; i++) {
+		if (svgData.faces[i].hasSelected()) {
+			svgData.faces[i].svgOffset(offsetX, offsetY);
 		}
 	}
 }
 
 function renderLayers() {
 	var newHTML = "";
-	for (var i = 0; i < undoHistory[undoHistoryIndex].layers.length; i++) {
-		newHTML = newHTML.concat(
-			createLayerHTML(undoHistory[undoHistoryIndex].layers[i])
-		);
+	for (var i = 0; i < svgData.layers.length; i++) {
+		newHTML = newHTML.concat(svgData.layers[i].createLayerHTML());
 	}
 	$("#layer-sortable-list").html(newHTML);
 
-	$("#layer-sortable-list")
-		.sortable()
-		.on("sortstop", stopLayerSort);
+	$("#layer-sortable-list").sortable().on("sortstop", stopLayerSort);
 
 	$(".btn-layer-visibility").on("click", toggleLayerVisibility);
 	$(".btn-layer-move").on("click", moveSelectionToLayer);
 	$(".btn-layer-delete").on("click", deleteLayer);
 	$(".layer-list-move-icon").on("click", selectLayer);
 	$(".layer-list-name").on("change", editLayerName);
-}
-
-function createLayerHTML(layer) {
-	var active = false;
-	if (layer.name == currentLayer) {
-		active = true;
-	}
-	return `
-<li
-	id="${layer.name}"
-	class="layer-list-item ${active ? " active-layer" : ""}"
->
-	<ion-icon
-		name="swap-vertical"
-		class="layer-list-move-icon"
-	></ion-icon>
-	<input
-		class="layer-list-name"
-		type="text"
-		value="${layer.name}"
-	>
-	<div class="btn-group btn-layer-group">
-		<button
-			type="button"
-			class="btn btn-light btn-layer-group-inside btn-layer-visibility"
-			title="Toggle Layer Visibility"
-		>
-			<ion-icon name="eye${layer.visible ? "" : "-off"}-outline"></ion-icon>
-		</button>
-		<button
-			type="button"
-			class="btn btn-light btn-layer-group-inside btn-layer-move"
-			title="Move Selection to Layer"
-		>
-			<ion-icon name="analytics-outline"></ion-icon>
-		</button><button
-			type="button"
-			class="btn btn-light btn-layer-group-inside btn-layer-delete"
-			title="Delete Layer"
-		>
-			<ion-icon name="trash-outline"></ion-icon>
-		</button>
-	</div>
-</li>
-`;
 }
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
@@ -2461,13 +2542,16 @@ function createLayerHTML(layer) {
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
-$(document).ready(function() {
-	undoHistory.push({
-		points: [],
-		lines: [],
-		faces: [],
-		layers: [{ name: "Layer1", visible: true }]
-	});
+$(document).ready(function () {
+	svgData.layers.push(
+		new Layer(
+			`r${new Date().getTime()}-${(idAccumulator++)
+				.toString()
+				.padStart(8, "0")}`,
+			"Layer1"
+		)
+	);
+	currentLayer = svgData.layers[0].id;
 	zoom = d3.zoom();
 
 	var borderWidth = 0.01;
@@ -2488,7 +2572,7 @@ $(document).ready(function() {
 
 	$("#backgroundImageLoader").on("change", uploadBackground);
 
-	btnTabs.forEach(function(btn) {
+	btnTabs.forEach(function (btn) {
 		btn.on("click", btnTabPress);
 	});
 
@@ -2497,7 +2581,7 @@ $(document).ready(function() {
 		.on("keyup", upKey)
 		.on("mousemove", mouseMove);
 
-	window.addEventListener("contextmenu", function(e) {
+	window.addEventListener("contextmenu", function (e) {
 		e.preventDefault();
 	});
 
@@ -2572,9 +2656,7 @@ $(document).ready(function() {
 		.attr("stroke", "rgba(0,64,128,0.5)")
 		.attr("stroke-width", borderWidth);
 
-	$("#layer-sortable-list")
-		.sortable()
-		.on("sortstop", stopLayerSort);
+	$("#layer-sortable-list").sortable().on("sortstop", stopLayerSort);
 	$("#btn-add-layer").on("click", addLayer);
 
 	$(".btn-layer-visibility").on("click", toggleLayerVisibility);
@@ -2587,14 +2669,14 @@ $(document).ready(function() {
 		zoom
 			.extent([
 				[0, 0],
-				[1, 1]
+				[1, 1],
 			])
 			.translateExtent([
 				[-2, -2],
-				[3, 3]
+				[3, 3],
 			])
 			.scaleExtent([Math.pow(1 / zoomFactor, 8), Math.pow(zoomFactor, 8)])
-			.filter(function() {
+			.filter(function () {
 				return (
 					!d3.event.ctrlKey &&
 					(d3.event.button == 2 || d3.event.type == "wheel") &&
