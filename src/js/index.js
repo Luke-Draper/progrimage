@@ -41,6 +41,8 @@ const editTypeIcons = [
 const btnUndo = d3.select("#btn-undo");
 const btnRedo = d3.select("#btn-redo");
 
+const btnExport = d3.select("#btn-export");
+
 const btnZoomIn = d3.select("#btn-zoom-in");
 const btnZoomReset = d3.select("#btn-zoom-reset");
 const btnZoomOut = d3.select("#btn-zoom-out");
@@ -456,6 +458,10 @@ class Point extends SVGCanvasElement {
 		return `${this.x},${this.y}`;
 	}
 
+	svgExportFormat() {
+		return `${this.x * 100},${this.y * 100}`;
+	}
+
 	svgOffsetFormat(offsetX, offsetY) {
 		return `${this.x + offsetX},${this.y + offsetY}`;
 	}
@@ -495,7 +501,12 @@ class Point extends SVGCanvasElement {
 		if (!visiblePoints || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
-		return `<circle cx="${this.x}" cy="${this.y}" r="${this.radius}" fill="${this.color}"/>`;
+		var c = d3.color(this.color);
+		return `<circle cx="${this.x * 100}" cy="${this.y * 100}" r="${
+			this.radius * 100
+		}" fill="${this.color}" style="fill:${c.formatHex()};fill-opacity:${
+			c.opacity
+		};"/>`;
 	}
 }
 
@@ -596,13 +607,18 @@ class Line extends SVGCanvasElement {
 		if (!visibleLines || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
-		return `<line x1="${getByID(this.point1ID).x}" y1="${
-			getByID(this.point1ID).y
-		}" x2="${getByID(this.point2ID).x}" y2="${
-			getByID(this.point2ID).y
-		}"  stroke-width="${this.strokeWidth}" stroke="${
+		var c = d3.color(this.color);
+		return `<line x1="${getByID(this.point1ID).x * 100}" y1="${
+			getByID(this.point1ID).y * 100
+		}" x2="${getByID(this.point2ID).x * 100}" y2="${
+			getByID(this.point2ID).y * 100
+		}"  stroke-width="${this.strokeWidth * 100}" stroke="${
 			this.color
-		}" stroke-linecap="round"/>`;
+		}" stroke-linecap="round" style="stroke-width:${
+			this.strokeWidth * 100
+		};stroke-linecap:round;stroke-miterlimit:4;stroke-dasharray:none;stroke:${c.formatHex()};stroke-opacity:${
+			c.opacity
+		};"/>`;
 	}
 }
 
@@ -747,11 +763,14 @@ class Face extends SVGCanvasElement {
 		if (!visibleFaces || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
-		return `<polygon points="${getByID(this.point1ID).svgFormat()} ${getByID(
-			this.point2ID
-		).svgFormat()} ${getByID(this.point3ID).svgFormat()}" fill="${
+		var c = d3.color(this.color);
+		return `<polygon points="${getByID(
+			this.point1ID
+		).svgExportFormat()} ${getByID(this.point2ID).svgExportFormat()} ${getByID(
+			this.point3ID
+		).svgExportFormat()}" fill="${
 			this.color
-		}"/>`;
+		}" style="fill:${c.formatHex()};fill-opacity:${c.opacity};"/>`;
 	}
 }
 
@@ -897,6 +916,55 @@ var btnTabPress = function () {
 	});
 	d3.select(`#${btn.attr("aria-controls")}`).classed("active", true);
 };
+
+var btnExportPress = function () {
+	var exportHTML = "<svg>";
+
+	svgData.layers
+		.slice()
+		.reverse()
+		.forEach(function (layer) {
+			if (layer.visible) {
+				svgData.faces.forEach(function (face) {
+					if (face.layer == layer.id) {
+						exportHTML = exportHTML.concat(face.svgExport());
+					}
+				});
+
+				svgData.lines.forEach(function (line) {
+					if (line.layer == layer.id) {
+						exportHTML = exportHTML.concat(line.svgExport());
+					}
+				});
+
+				svgData.points.forEach(function (point) {
+					if (point.layer == layer.id) {
+						exportHTML = exportHTML.concat(point.svgExport());
+					}
+				});
+			}
+		});
+
+	exportHTML = exportHTML.concat("</svg>");
+
+	download("progrimage.svg", exportHTML);
+};
+
+function download(filename, text) {
+	var element = document.createElement("a");
+	element.setAttribute(
+		"href",
+		"data:text/plain;charset=utf-8," + encodeURIComponent(text)
+	);
+	element.setAttribute("download", filename);
+
+	element.style.display = "none";
+	document.body.appendChild(element);
+
+	element.click();
+
+	document.body.removeChild(element);
+}
 
 /*     --==++==--     --==++==--     --==++==--     --==++==--     --==++==--     */
 
@@ -1843,9 +1911,9 @@ function getColorAt(xyCoords) {
 	var imgData = baseCtx.getImageData(0, 0, baseCanvas.width, baseCanvas.height);
 	var coords = convertSVGXYToImage(xyCoords);
 	var dataIndex = (coords.x + coords.y * baseCanvas.width) * 4;
-	return `rgb(${imgData.data[dataIndex]}, ${imgData.data[dataIndex + 1]}, ${
+	return `rgba(${imgData.data[dataIndex]}, ${imgData.data[dataIndex + 1]}, ${
 		imgData.data[dataIndex + 2]
-	})`;
+	},1)`;
 }
 
 function sortThroughCorners(weights) {
@@ -2615,6 +2683,8 @@ $(document).ready(function () {
 
 	btnPointApply.on("click", btnPointApplyPress);
 	pointRadiusNumber.on("change", pointOtherChange);
+
+	btnExport.on("click", btnExportPress);
 
 	pointHueNumber.on("change", pointNumberChange);
 	pointSaturationNumber.on("change", pointNumberChange);
