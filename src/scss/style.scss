@@ -192,11 +192,38 @@ body {
 	background-color: $active-color;
 }
 
+#place-points {
+	justify-content: space-between;
+	align-items: center;
+	display: flex;
+}
+
+#points-taken-number {
+	margin-right: 20px;
+}
+
+h4 {
+	font-size: 0.8rem;
+	margin-top: 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+h5 {
+	font-size: 0.7rem;
+	margin-top: 0.3rem;
+	margin-bottom: 0.3rem;
+}
+
+#backgroundImageLoader {
+	width: 170px;
+	font-size: 0.7rem;
+}
+
 .misc-canvas {
 	z-index: -100;
 	position: absolute;
-	left: -3000;
-	top: -3000;
+	left: 3000;
+	top: 3000;
 }
 
 .layer-list-item {

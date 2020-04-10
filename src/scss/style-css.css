@@ -13,6 +13,6 @@ html {
 }
 
 #overflow-disabler {
-	min-width: max(820px, 100vw);
-	min-height: max(820px, 100vh);
+	min-width: max(820px, 100%);
+	min-height: max(820px, 100%);
 }

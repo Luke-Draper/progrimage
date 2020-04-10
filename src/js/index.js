@@ -69,19 +69,19 @@ const btnMiniDisplayOpenIcon = d3.select("#btn-mini-display-toggle-open");
 const btnMiniDisplayCloseIcon = d3.select("#btn-mini-display-toggle-close");
 
 const btnTabs = [
+	d3.select("#background-tab"),
+	d3.select("#layer-tab"),
 	d3.select("#point-tab"),
 	d3.select("#line-tab"),
 	d3.select("#face-tab"),
-	d3.select("#layer-tab"),
-	d3.select("#background-tab"),
 ];
 
 const btnTabContents = [
+	d3.select("#background-tab-content"),
+	d3.select("#layer-tab-content"),
 	d3.select("#point-tab-content"),
 	d3.select("#line-tab-content"),
 	d3.select("#face-tab-content"),
-	d3.select("#layer-tab-content"),
-	d3.select("#background-tab-content"),
 ];
 
 const pointRadiusNumber = d3.select("#point-radius-number");
@@ -142,6 +142,8 @@ var currentStepID = 0;
 function getCurrentStepID() {
 	return stepList[currentStepIndex];
 }
+
+var backgroundImage = false;
 
 var zoom;
 
@@ -425,7 +427,7 @@ class Point extends SVGCanvasElement {
 		this.y = y;
 		this.radius = radius;
 		this.selected = selected;
-		if (useBackgroundColorCheck.property("checked") && rawimgData) {
+		if (useBackgroundColorCheck.property("checked") && backgroundImage) {
 			this.color = getColorAt({ x: x, y: y });
 		}
 	}
@@ -459,7 +461,7 @@ class Point extends SVGCanvasElement {
 	}
 
 	svgCanvas() {
-		if (!visiblePoints || this.removed) {
+		if (!visiblePoints || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
 		var selectAttributes = "";
@@ -479,7 +481,7 @@ class Point extends SVGCanvasElement {
 	}
 
 	svgBasic() {
-		if (!visiblePoints || this.removed) {
+		if (!visiblePoints || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
 		var color = "rgba(0,128,0,1)";
@@ -490,7 +492,7 @@ class Point extends SVGCanvasElement {
 	}
 
 	svgExport() {
-		if (!visiblePoints || this.removed) {
+		if (!visiblePoints || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
 		return `<circle cx="${this.x}" cy="${this.y}" r="${this.radius}" fill="${this.color}"/>`;
@@ -510,7 +512,7 @@ class Line extends SVGCanvasElement {
 		this.point1ID = point1ID;
 		this.point2ID = point2ID;
 		this.strokeWidth = strokeWidth;
-		if (useBackgroundColorCheck.property("checked") && rawimgData) {
+		if (useBackgroundColorCheck.property("checked") && backgroundImage) {
 			var p1 = getByID(this.point1ID);
 			var p2 = getByID(this.point2ID);
 			this.color = getColorAt({ x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 });
@@ -547,7 +549,7 @@ class Line extends SVGCanvasElement {
 	}
 
 	svgCanvas() {
-		if (!visibleLines || this.removed) {
+		if (!visibleLines || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
 		var selectAttributes = `stroke="${this.color}" stroke-linecap="round"`;
@@ -576,7 +578,7 @@ class Line extends SVGCanvasElement {
 	}
 
 	svgBasic() {
-		if (!visibleLines || this.removed) {
+		if (!visibleLines || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
 		var color = "rgba(0,128,0,0.4)";
@@ -591,7 +593,7 @@ class Line extends SVGCanvasElement {
 	}
 
 	svgExport() {
-		if (!visibleLines || this.removed) {
+		if (!visibleLines || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
 		return `<line x1="${getByID(this.point1ID).x}" y1="${
@@ -617,7 +619,7 @@ class Face extends SVGCanvasElement {
 		this.point1ID = point1ID;
 		this.point2ID = point2ID;
 		this.point3ID = point3ID;
-		if (useBackgroundColorCheck.property("checked") && rawimgData) {
+		if (useBackgroundColorCheck.property("checked") && backgroundImage) {
 			var p1 = getByID(this.point1ID);
 			var p2 = getByID(this.point2ID);
 			var p3 = getByID(this.point3ID);
@@ -665,7 +667,7 @@ class Face extends SVGCanvasElement {
 	}
 
 	svgCanvas() {
-		if (!visibleFaces || this.removed) {
+		if (!visibleFaces || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
 		var selectAttributes = "";
@@ -723,7 +725,7 @@ class Face extends SVGCanvasElement {
 	}
 
 	svgBasic() {
-		if (!visibleFaces || this.removed) {
+		if (!visibleFaces || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
 		var color = "rgba(0,128,128,0.2)";
@@ -742,7 +744,7 @@ class Face extends SVGCanvasElement {
 	}
 
 	svgExport() {
-		if (!visibleFaces || this.removed) {
+		if (!visibleFaces || this.removed || !getByID(this.layer).visible) {
 			return "";
 		}
 		return `<polygon points="${getByID(this.point1ID).svgFormat()} ${getByID(
@@ -1669,6 +1671,14 @@ var upKey = function () {
 				btnRedoPress();
 			}
 		}
+		if (keydown == "a" || keydown == "A") {
+			if (d3.event.ctrlKey) {
+				svgData.points.forEach(function (point) {
+					point.select();
+					draw();
+				});
+			}
+		}
 		if (keydown == "p" || keydown == "P") {
 			if (d3.event.ctrlKey) {
 				removeSelectedPoints();
@@ -1734,6 +1744,7 @@ var uploadBackground = function () {
 					backCanvas.height = img.height;
 					backCtx.drawImage(img, (img.height - img.width) / 2, 0);
 				}
+				backgroundImage = true;
 				baseCanvas.width = img.width;
 				baseCanvas.height = img.height;
 				baseCtx.drawImage(img, 0, 0);
@@ -1745,48 +1756,56 @@ var uploadBackground = function () {
 };
 
 var setupBackgroundPoints = function () {
-	var baseCanvas = imageBase.node();
-	var baseCtx = baseCanvas.getContext("2d");
-	var imgData = baseCtx.getImageData(0, 0, baseCanvas.width, baseCanvas.height);
-	var grayScale = new Uint8Array(baseCanvas.width * baseCanvas.height);
-	for (var i = 0; i < imgData.data.length; i += 4) {
-		grayScale[i / 4] = parseInt(
-			d3.hsl(
-				d3
-					.rgb(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2])
-					.formatHsl()
-			).l * 255
+	if (backgroundImage) {
+		var baseCanvas = imageBase.node();
+		var baseCtx = baseCanvas.getContext("2d");
+		var imgData = baseCtx.getImageData(
+			0,
+			0,
+			baseCanvas.width,
+			baseCanvas.height
 		);
-	}
-	var cornerWeights = fast9.detect(
-		grayScale,
-		baseCanvas.width,
-		baseCanvas.height,
-		10
-	);
-	var finalPoints = sortThroughCorners(cornerWeights);
-	stepOperation(function () {
-		var outputLayer = new Layer(
-			`r${new Date().getTime()}-${(idAccumulator++)
-				.toString()
-				.padStart(8, "0")}`,
-			`setPoints`
-		);
-		svgData.layers.push(outputLayer);
-		finalPoints.forEach(function (weight) {
-			var id = `p${new Date().getTime()}-${(idAccumulator++)
-				.toString()
-				.padStart(8, "0")}`;
-			var xy = convertImageXYToSVG(weight);
-			var dataIndex = (weight.x + weight.y * baseCanvas.width) * 4;
-			var pointColor = `rgb(${imgData.data[dataIndex]}, ${
-				imgData.data[dataIndex + 1]
-			}, ${imgData.data[dataIndex + 2]})`;
-			svgData.points.push(
-				new Point(id, xy.x, xy.y, 0.0015, pointColor, outputLayer.id, false)
+		var grayScale = new Uint8Array(baseCanvas.width * baseCanvas.height);
+		for (var i = 0; i < imgData.data.length; i += 4) {
+			grayScale[i / 4] = parseInt(
+				d3.hsl(
+					d3
+						.rgb(imgData.data[i], imgData.data[i + 1], imgData.data[i + 2])
+						.formatHsl()
+				).l * 255
 			);
+		}
+		var cornerWeights = fast9.detect(
+			grayScale,
+			baseCanvas.width,
+			baseCanvas.height,
+			30
+		);
+		var finalPoints = sortThroughCorners(cornerWeights);
+		stepOperation(function () {
+			var outputLayer = new Layer(
+				`r${new Date().getTime()}-${(idAccumulator++)
+					.toString()
+					.padStart(8, "0")}`,
+				`setPoints`
+			);
+			redrawLayers = true;
+			svgData.layers.push(outputLayer);
+			finalPoints.forEach(function (weight) {
+				var id = `p${new Date().getTime()}-${(idAccumulator++)
+					.toString()
+					.padStart(8, "0")}`;
+				var xy = convertImageXYToSVG(weight);
+				var dataIndex = (weight.x + weight.y * baseCanvas.width) * 4;
+				var pointColor = `rgb(${imgData.data[dataIndex]}, ${
+					imgData.data[dataIndex + 1]
+				}, ${imgData.data[dataIndex + 2]})`;
+				svgData.points.push(
+					new Point(id, xy.x, xy.y, 0.0015, pointColor, outputLayer.id, false)
+				);
+			});
 		});
-	});
+	}
 };
 
 function convertImageXYToSVG(xyCoords) {
@@ -1830,63 +1849,65 @@ function getColorAt(xyCoords) {
 }
 
 function sortThroughCorners(weights) {
+	var baseCanvas = imageBase.node();
+	var splits = 50;
+	var widthSplit = baseCanvas.width / splits;
+	var heightSplit = baseCanvas.height / splits;
+
 	weights.sort(function (a, b) {
+		return b.x - a.x;
+	});
+
+	var weightsThinned = [];
+
+	for (var x = 0; x < splits; x++) {
+		for (var y = 0; y < splits; y++) {
+			var group = [];
+			for (var i = 0; i < weights.length; i++) {
+				if (
+					x * widthSplit < weights[i].x &&
+					(x + 1) * widthSplit > weights[i].x &&
+					y * heightSplit < weights[i].y &&
+					(y + 1) * heightSplit > weights[i].y
+				) {
+					group.push(weights[i]);
+				}
+			}
+			if (group.length > 0) {
+				var xAccumulator = 0;
+				var yAccumulator = 0;
+				var sAccumulator = 0;
+				for (var i = 0; i < group.length; i++) {
+					xAccumulator += group[i].x;
+					yAccumulator += group[i].y;
+					sAccumulator += group[i].score;
+				}
+				weightsThinned.push({
+					x: xAccumulator / group.length,
+					y: yAccumulator / group.length,
+					score: sAccumulator / group.length,
+				});
+			}
+		}
+	}
+
+	weightsThinned.sort(function (a, b) {
 		return b.score - a.score;
 	});
-	weights.forEach(function (a) {
-		a.visited = false;
-	});
-	var baseCanvas = imageBase.node();
+
+	var pointsToTake = d3.select("#points-taken-number").property("value");
 	var output = [];
-	var groups = [];
+
+	if (pointsToTake > weightsThinned.length) {
+		output = weightsThinned;
+	} else {
+		output = weightsThinned.slice(0, pointsToTake);
+	}
+
 	output.push({ x: baseCanvas.width, y: baseCanvas.height });
 	output.push({ x: baseCanvas.width, y: 0 });
 	output.push({ x: 0, y: baseCanvas.height });
 	output.push({ x: 0, y: 0 });
-	for (var i = 0; i < weights.length; i++) {
-		if (!weights[i].visited) {
-			weights[i].visited = true;
-			var group = [weights[i]];
-			for (var j = i; j < weights.length; j++) {
-				var accumulator = 0;
-				for (var k = 0; k < group.length; k++) {
-					if (
-						(!weights[j].visited &&
-							weights[j].x == group[k].x + 1 &&
-							weights[j].y == group[k].y + 1) ||
-						(weights[j].x == group[k].x + 1 &&
-							weights[j].y == group[k].y - 1) ||
-						(weights[j].x == group[k].x - 1 &&
-							weights[j].y == group[k].y + 1) ||
-						(weights[j].x == group[k].x - 1 && weights[j].y == group[k].y - 1)
-					) {
-						weights[i].visited = true;
-						group.push(weights[i]);
-						break;
-					}
-				}
-				for (var k = 0; k < group.length; k++) {
-					accumulator += group[k].score;
-				}
-				if (accumulator > 360) {
-					break;
-				}
-			}
-			groups.push(group);
-		}
-	}
-	for (var i = 0; i < groups.length; i++) {
-		var xAccumulator = 0;
-		var yAccumulator = 0;
-		for (var j = i; j < groups[i].length; j++) {
-			xAccumulator += groups[i][j].x;
-			yAccumulator += groups[i][j].y;
-		}
-		output.push({
-			x: xAccumulator / groups[i].length,
-			y: yAccumulator / groups[i].length,
-		});
-	}
 	return output;
 }
 
@@ -1915,7 +1936,6 @@ function stepOperation(fn) {
 	stepList.push(currentStepID.toString().padStart(16, "0"));
 	fn();
 	draw();
-	console.log(stepList);
 }
 
 function addPoint() {
